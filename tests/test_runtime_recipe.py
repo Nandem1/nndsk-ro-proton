@@ -39,6 +39,18 @@ class RecipeTests(unittest.TestCase):
         self.assertIs(recipe.LOCK['publicationReady'], False)
         self.assertEqual(recipe.LOCK['method'], 'pinned-binary-base-with-source-built-module-overlay')
 
+    def test_git_identity_queries_sanitize_repository_redirects(self):
+        with patch.dict(os.environ, {'GIT_DIR': '/wrong/.git', 'GIT_WORK_TREE': '/wrong',
+                                     'GIT_INDEX_FILE': '/wrong/index'}):
+            with patch.object(recipe.subprocess, 'check_output', return_value='expected\n') as call:
+                self.assertEqual(recipe.git_output(['rev-parse', 'HEAD'], ROOT), 'expected\n')
+        argv = call.call_args.args[0]
+        options = call.call_args.kwargs
+        self.assertEqual(argv, ['git', 'rev-parse', 'HEAD'])
+        self.assertEqual(options['cwd'], ROOT)
+        for key in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE'):
+            self.assertNotIn(key, options['env'])
+
     def test_no_product_condition_in_functional_patches(self):
         for item in recipe.LOCK['patches']:
             data = (ROOT / item['path']).read_text()
@@ -69,6 +81,23 @@ class RecipeTests(unittest.TestCase):
         link.type = tarfile.SYMTYPE
         link.linkname = '/'
         recipe.validate_archive_members([link])
+
+    def test_archive_rejects_normalized_link_traversal(self):
+        import tarfile
+        root = recipe.LOCK['binaryBase']['root']
+        link = tarfile.TarInfo(root + '/./link')
+        link.type = tarfile.SYMTYPE
+        link.linkname = '/outside'
+        child = tarfile.TarInfo(root + '/link/file')
+        with self.assertRaises(RuntimeError):
+            recipe.validate_archive_members([link, child])
+
+    def test_archive_rejects_normalized_duplicate(self):
+        import tarfile
+        root = recipe.LOCK['binaryBase']['root']
+        with self.assertRaises(RuntimeError):
+            recipe.validate_archive_members([tarfile.TarInfo(root + '/dir/file'),
+                                            tarfile.TarInfo(root + '/dir/./file')])
 
 if __name__ == '__main__':
     unittest.main()

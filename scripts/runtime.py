@@ -43,6 +43,10 @@ def environment():
     env.update(SOURCE_DATE_EPOCH=str(LOCK['sourceDateEpoch']), LC_ALL='C', TZ='UTC')
     return env
 
+def git_output(args, cwd):
+    """Never let an inherited GIT_DIR/GIT_WORK_TREE redirect identity checks."""
+    return subprocess.check_output(['git', *args], cwd=cwd, env=environment(), text=True)
+
 def run(args, cwd, label, env=None):
     logdir = WORK / 'logs'
     logdir.mkdir(parents=True, exist_ok=True)
@@ -83,14 +87,14 @@ def inventory(root, exclude=()):
 
 def verify_source():
     source = WORK / 'wine'
-    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=source, text=True).strip()
+    head = git_output(['rev-parse', 'HEAD'], source).strip()
     if head != LOCK['wine']['commit']:
         raise RuntimeError('Source HEAD changed')
     expected = json.loads((ROOT / 'provenance/validated-source.json').read_text())
     for name, record in expected.items():
         if sha(source / name) != record['candidateSha256']:
             raise RuntimeError('Functional source changed: ' + name)
-    changed = set(subprocess.check_output(['git', 'diff', 'HEAD', '--name-only'], cwd=source, text=True).splitlines())
+    changed = set(git_output(['diff', 'HEAD', '--name-only'], source).splitlines())
     extras = changed - expected.keys()
     for name in extras:
         if name not in LOCK['testSourceSha256'] or sha(source / name) != LOCK['testSourceSha256'][name]:
@@ -130,11 +134,12 @@ def validate_archive_members(members):
         p = Path(member.name)
         if p.is_absolute() or '..' in p.parts or not p.parts or p.parts[0] != root:
             raise RuntimeError('Unexpected archive path: ' + member.name)
-        if member.name.rstrip('/') in names:
+        canonical = p.as_posix().rstrip('/')
+        if canonical in names:
             raise RuntimeError('Duplicate archive member')
         if not (member.isfile() or member.isdir() or member.issym() or member.islnk()):
             raise RuntimeError('Unexpected archive object type')
-        names[member.name.rstrip('/')] = member
+        names[canonical] = member
     for member in names.values():
         for ancestor in Path(member.name).parents:
             previous = names.get(ancestor.as_posix())
@@ -283,8 +288,8 @@ def stage(args):
     if set(differences) != allowed:
         raise RuntimeError('Unexpected staged module changes: ' + repr(set(differences)))
     save(WORK / 'module-differences.json', differences)
-    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
+    commit = git_output(['rev-parse', 'HEAD'], ROOT).strip()
+    if git_output(['status', '--porcelain'], ROOT):
         raise RuntimeError('Commit source inputs before identifying a runtime')
     identity = {'schemaVersion': 1, 'runtimeId': LOCK['runtimeId'], 'version': LOCK['version'],
                 'sourceCommit': commit, 'patchsetRevision': LOCK['patchsetRevision'],
