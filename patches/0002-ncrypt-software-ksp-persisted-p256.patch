@@ -1,0 +1,913 @@
+--- a/dlls/ncrypt/Makefile.in
++++ b/dlls/ncrypt/Makefile.in
+@@ -1,8 +1,9 @@
+ IMPORTLIB = ncrypt
+ MODULE    = ncrypt.dll
+-IMPORTS   = bcrypt
++IMPORTS   = bcrypt crypt32 advapi32
+ 
+ EXTRADLLFLAGS = -Wb,--prefer-native
+ 
+ SOURCES = \
+-	main.c
++	main.c \
++	storage.c
+--- a/dlls/ncrypt/main.c
++++ b/dlls/ncrypt/main.c
+@@ -165,6 +165,84 @@
+     return object;
+ }
+ 
++static SECURITY_STATUS create_p256_key(NCRYPT_PROV_HANDLE provider, NCRYPT_KEY_HANDLE *key, BOOL generate)
++{
++    const NCRYPT_SUPPORTED_LENGTHS lengths = {256, 256, 0, 256};
++    const DWORD bitlen = 256, siglen = 64, zero = 0, usage = NCRYPT_ALLOW_ALL_USAGES;
++    const struct
++    {
++        const WCHAR *name;
++        const void *data;
++        DWORD size;
++    } properties[] =
++    {
++        {NCRYPT_ALGORITHM_PROPERTY, BCRYPT_ECDSA_P256_ALGORITHM, sizeof(BCRYPT_ECDSA_P256_ALGORITHM)},
++        {NCRYPT_ALGORITHM_GROUP_PROPERTY, L"ECDSA", sizeof(L"ECDSA")},
++        {NCRYPT_LENGTH_PROPERTY, &bitlen, sizeof(bitlen)},
++        {NCRYPT_LENGTHS_PROPERTY, &lengths, sizeof(lengths)},
++        {BCRYPT_PUBLIC_KEY_LENGTH, &bitlen, sizeof(bitlen)},
++        {BCRYPT_SIGNATURE_LENGTH, &siglen, sizeof(siglen)},
++        {NCRYPT_EXPORT_POLICY_PROPERTY, &zero, sizeof(zero)},
++        {NCRYPT_KEY_USAGE_PROPERTY, &usage, sizeof(usage)},
++        {NCRYPT_KEY_TYPE_PROPERTY, &zero, sizeof(zero)},
++        {NCRYPT_PROVIDER_HANDLE_PROPERTY, &provider, sizeof(provider)},
++    };
++    struct object *object;
++    SECURITY_STATUS ret;
++    unsigned int i;
++
++    if (!(object = allocate_object(KEY))) return NTE_NO_MEMORY;
++    object->key.algid = ECDSA;
++    for (i = 0; i < ARRAY_SIZE(properties); i++)
++    {
++        ret = set_object_property(object, properties[i].name, (BYTE *)properties[i].data, properties[i].size);
++        if (ret) goto failed;
++    }
++    if (generate)
++    {
++        ret = map_ntstatus(BCryptGenerateKeyPair(BCRYPT_ECDSA_P256_ALG_HANDLE, &object->key.bcrypt_key, 256, 0));
++        if (ret) goto failed;
++    }
++    *key = (NCRYPT_KEY_HANDLE)object;
++    return ERROR_SUCCESS;
++
++failed:
++    for (i = 0; i < object->num_properties; i++)
++    {
++        free(object->properties[i].key);
++        free(object->properties[i].value);
++    }
++    free(object->properties);
++    free(object);
++    return ret;
++}
++
++static SECURITY_STATUS set_named_key_properties(struct object *object, const WCHAR *name, DWORD flags)
++{
++    DWORD scope = flags & NCRYPT_MACHINE_KEY_FLAG;
++    SECURITY_STATUS ret;
++    if (!(object->key.name = wcsdup(name))) return NTE_NO_MEMORY;
++    object->key.storage_flags = flags;
++    ret = set_object_property(object, NCRYPT_NAME_PROPERTY, (BYTE *)name, (wcslen(name) + 1) * sizeof(WCHAR));
++    if (!ret) ret = set_object_property(object, NCRYPT_KEY_TYPE_PROPERTY, (BYTE *)&scope, sizeof(scope));
++    return ret;
++}
++
++/* Internal construction cleanup must not relax the public handle contract. */
++static void free_unpublished_object(struct object *object)
++{
++    unsigned int i;
++    if (object->key.bcrypt_key) BCryptDestroyKey(object->key.bcrypt_key);
++    free(object->key.name);
++    for (i = 0; i < object->num_properties; ++i)
++    {
++        free(object->properties[i].key);
++        free(object->properties[i].value);
++    }
++    free(object->properties);
++    free(object);
++}
++
+ SECURITY_STATUS WINAPI NCryptCreatePersistedKey(NCRYPT_PROV_HANDLE provider, NCRYPT_KEY_HANDLE *key,
+                                                 const WCHAR *algid, const WCHAR *name, DWORD keyspec, DWORD flags)
+ {
+@@ -175,8 +253,40 @@
+ 
+     if (!provider) return NTE_INVALID_HANDLE;
+     if (!algid) return HRESULT_FROM_WIN32(RPC_X_NULL_REF_POINTER);
+-    if (name) FIXME("Persistent keys are not supported\n");
++    if (!lstrcmpiW(algid, BCRYPT_ECDSA_P256_ALGORITHM))
++    {
++        NCRYPT_KEY_HANDLE created;
++        SECURITY_STATUS ret;
++
++        if (((struct object *)provider)->type != STORAGE_PROVIDER) return NTE_INVALID_HANDLE;
++        if (!((struct object *)provider)->storage_provider.software) return NTE_NOT_SUPPORTED;
++        if (!key) return NTE_INVALID_PARAMETER;
++        if (flags & ~(NCRYPT_MACHINE_KEY_FLAG | NCRYPT_OVERWRITE_KEY_FLAG)) return NTE_BAD_FLAGS;
++        if (keyspec) return NTE_NOT_SUPPORTED;
++        if (!name && flags) return NTE_NOT_SUPPORTED;
++        if (name && (ret = ncrypt_storage_check(name, flags))) return ret;
++        if ((ret = create_p256_key(provider, &created, TRUE))) return ret;
++        object = (struct object *)created;
++        if (name)
++        {
++            ret = set_named_key_properties(object, name, flags);
++            if (!ret) ret = map_ntstatus(BCryptGenRandom(NULL, object->key.generation,
++                                                       sizeof(object->key.generation), BCRYPT_USE_SYSTEM_PREFERRED_RNG));
++            if (ret)
++            {
++                NCryptFreeObject(created);
++                return ret;
++            }
++        }
++        *key = created;
++        return ERROR_SUCCESS;
++    }
+ 
++    if (name)
++    {
++        FIXME("Persistent keys are not supported for this algorithm\n");
++        return NTE_NOT_SUPPORTED;
++    }
+     if (!lstrcmpiW(algid, BCRYPT_RSA_ALGORITHM))
+     {
+         NTSTATUS status;
+@@ -232,6 +342,20 @@
+ 
+ SECURITY_STATUS WINAPI NCryptDeleteKey(NCRYPT_KEY_HANDLE key, DWORD flags)
+ {
++    struct object *object = (struct object *)key;
++    SECURITY_STATUS ret;
++
++    if (!object || object->type != KEY) return NTE_INVALID_HANDLE;
++    if (object->key.algid == ECDSA)
++    {
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        if (object->key.name)
++        {
++            if (!object->key.finalized) return NTE_BAD_KEY_STATE;
++            if ((ret = ncrypt_storage_delete(&object->key))) return ret;
++        }
++        return NCryptFreeObject(key);
++    }
+     FIXME("(%#Ix, %#lx): stub\n", key, flags);
+     return NTE_NOT_SUPPORTED;
+ }
+@@ -288,6 +412,30 @@
+ 
+     if (!object || object->type != KEY) return NTE_INVALID_HANDLE;
+ 
++    if (object->key.algid == ECDSA)
++    {
++        SECURITY_STATUS ret;
++        const struct object_property *policy, *usage;
++
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        if (object->key.finalized) return NTE_INVALID_HANDLE;
++        if (!object->key.material_finalized)
++        {
++            status = BCryptFinalizeKeyPair(object->key.bcrypt_key, 0);
++            if (status) return map_ntstatus(status);
++            object->key.material_finalized = TRUE;
++        }
++        if (object->key.name)
++        {
++            policy = get_object_property(object, NCRYPT_EXPORT_POLICY_PROPERTY);
++            usage = get_object_property(object, NCRYPT_KEY_USAGE_PROPERTY);
++            ret = ncrypt_storage_write(&object->key, *(DWORD *)policy->value, *(DWORD *)usage->value);
++            if (ret) return ret;
++        }
++        object->key.finalized = TRUE;
++        return ERROR_SUCCESS;
++    }
++
+     if (!(prop = get_object_property(object, NCRYPT_LENGTH_PROPERTY))) return NTE_INVALID_HANDLE;
+     key_length = *(DWORD *)prop->value;
+     status = BCryptSetProperty(object->key.bcrypt_key, BCRYPT_KEY_LENGTH, (UCHAR *)&key_length, sizeof(key_length), 0);
+@@ -315,7 +463,11 @@
+ 
+ static SECURITY_STATUS free_key_object(struct key *key)
+ {
+-    return map_ntstatus( BCryptDestroyKey(key->bcrypt_key) );
++    SECURITY_STATUS ret;
++    if (!key->bcrypt_key) return NTE_INVALID_HANDLE;
++    ret = map_ntstatus(BCryptDestroyKey(key->bcrypt_key));
++    if (!ret) free(key->name);
++    return ret;
+ }
+ 
+ SECURITY_STATUS WINAPI NCryptFreeObject(NCRYPT_HANDLE handle)
+@@ -452,6 +604,33 @@
+     TRACE("(%#Ix, %#Ix, %s, %p, %p, %lu, %p, %#lx)\n", key, encrypt_key, wine_dbgstr_w(type), params, output,
+           output_len, ret_len, flags);
+ 
++    if (!object || object->type != KEY) return NTE_INVALID_HANDLE;
++    if (object->key.algid == ECDSA)
++    {
++        const struct object_property *policy;
++        const WCHAR *blob_type;
++        NTSTATUS status;
++        BOOL is_private;
++
++        if (!type || !ret_len) return NTE_INVALID_PARAMETER;
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        if (encrypt_key || params) return NTE_NOT_SUPPORTED;
++        if (!object->key.finalized) return NTE_BAD_KEY_STATE;
++        if (!lstrcmpW(type, BCRYPT_ECCPUBLIC_BLOB) || !lstrcmpW(type, BCRYPT_PUBLIC_KEY_BLOB))
++            is_private = FALSE;
++        else if (!lstrcmpW(type, BCRYPT_ECCPRIVATE_BLOB) || !lstrcmpW(type, BCRYPT_PRIVATE_KEY_BLOB))
++            is_private = TRUE;
++        else
++            return NTE_NOT_SUPPORTED;
++        policy = get_object_property(object, NCRYPT_EXPORT_POLICY_PROPERTY);
++        if (is_private && !(*(DWORD *)policy->value & NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG)) return NTE_PERM;
++        blob_type = is_private ? BCRYPT_ECCPRIVATE_BLOB : BCRYPT_ECCPUBLIC_BLOB;
++        status = BCryptExportKey(object->key.bcrypt_key, NULL, blob_type, NULL, 0, ret_len, 0);
++        if (status || !output) return map_ntstatus(status);
++        if (output_len < *ret_len) return NTE_BUFFER_TOO_SMALL;
++        return map_ntstatus(BCryptExportKey(object->key.bcrypt_key, NULL, blob_type, output, output_len, ret_len, 0));
++    }
++
+     if (encrypt_key)
+     {
+         FIXME("Key blob encryption not implemented\n");
+@@ -525,8 +704,38 @@
+ SECURITY_STATUS WINAPI NCryptOpenKey(NCRYPT_PROV_HANDLE provider, NCRYPT_KEY_HANDLE *key,
+                                      const WCHAR *name, DWORD keyspec, DWORD flags)
+ {
+-    FIXME("(%#Ix, %p, %s, %#lx, %#lx): stub\n", provider, key, wine_dbgstr_w(name), keyspec, flags);
+-    return NTE_NOT_SUPPORTED;
++    struct object *storage = (struct object *)provider, *object;
++    struct persisted_key persisted = {0};
++    NCRYPT_KEY_HANDLE opened;
++    SECURITY_STATUS ret;
++
++    TRACE("(%#Ix, %p, %s, %#lx, %#lx)\n", provider, key, wine_dbgstr_w(name), keyspec, flags);
++    if (!storage || storage->type != STORAGE_PROVIDER) return NTE_INVALID_HANDLE;
++    if (!storage->storage_provider.software) return NTE_NOT_SUPPORTED;
++    if (!key || !name) return NTE_INVALID_PARAMETER;
++    if (flags & ~(NCRYPT_MACHINE_KEY_FLAG | NCRYPT_SILENT_FLAG)) return NTE_BAD_FLAGS;
++    if (keyspec) return NTE_NOT_SUPPORTED;
++    ret = ncrypt_storage_read(name, flags, &persisted);
++    if (ret) goto done;
++    if ((ret = create_p256_key(provider, &opened, FALSE))) goto done;
++    object = (struct object *)opened;
++    ret = set_named_key_properties(object, name, flags & NCRYPT_MACHINE_KEY_FLAG);
++    if (!ret)
++        ret = map_ntstatus(BCryptImportKeyPair(BCRYPT_ECDSA_P256_ALG_HANDLE, NULL, BCRYPT_ECCPRIVATE_BLOB,
++                           &object->key.bcrypt_key, persisted.private_blob, sizeof(persisted.private_blob), 0));
++    if (ret)
++    {
++        free_unpublished_object(object);
++        goto done;
++    }
++    memcpy(get_object_property(object, NCRYPT_EXPORT_POLICY_PROPERTY)->value, &persisted.policy, sizeof(DWORD));
++    memcpy(get_object_property(object, NCRYPT_KEY_USAGE_PROPERTY)->value, &persisted.usage, sizeof(DWORD));
++    memcpy(object->key.generation, persisted.generation, sizeof(persisted.generation));
++    object->key.material_finalized = object->key.finalized = TRUE;
++    *key = opened;
++done:
++    SecureZeroMemory(&persisted, sizeof(persisted));
++    return ret;
+ }
+ 
+ SECURITY_STATUS WINAPI NCryptOpenStorageProvider(NCRYPT_PROV_HANDLE *provider, const WCHAR *name, DWORD flags)
+@@ -540,6 +749,7 @@
+         ERR("Error allocating memory.\n");
+         return NTE_NO_MEMORY;
+     }
++    object->storage_provider.software = !flags && (!name || !lstrcmpiW(name, L"Microsoft Software Key Storage Provider"));
+     *provider = (NCRYPT_PROV_HANDLE)object;
+     return ERROR_SUCCESS;
+ }
+@@ -552,6 +762,33 @@
+     if (flags) FIXME("flags %#lx not supported\n", flags);
+ 
+     if (!object) return NTE_INVALID_HANDLE;
++    if (object->type == KEY && object->key.algid == ECDSA)
++    {
++        struct object_property *prop;
++        DWORD value;
++
++        if (!name || !input || insize != sizeof(value)) return NTE_INVALID_PARAMETER;
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        /* Post-finalize mutation is deliberately not implemented in this subset. */
++        if (object->key.finalized) return NTE_NOT_SUPPORTED;
++        memcpy(&value, input, sizeof(value));
++        if (!lstrcmpW(name, NCRYPT_LENGTH_PROPERTY))
++        {
++            if (value != 256) return NTE_INVALID_PARAMETER;
++        }
++        else if (!lstrcmpW(name, NCRYPT_EXPORT_POLICY_PROPERTY))
++        {
++            if (value & ~(NCRYPT_ALLOW_EXPORT_FLAG | NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG)) return NTE_NOT_SUPPORTED;
++        }
++        else if (!lstrcmpW(name, NCRYPT_KEY_USAGE_PROPERTY))
++        {
++            if (value != NCRYPT_ALLOW_ALL_USAGES && (value & ~NCRYPT_ALLOW_SIGNING_FLAG)) return NTE_NOT_SUPPORTED;
++        }
++        else return NTE_NOT_SUPPORTED;
++        prop = get_object_property(object, name);
++        memcpy(prop->value, &value, sizeof(value));
++        return ERROR_SUCCESS;
++    }
+     return set_object_property(object, name, input, insize);
+ }
+ 
+@@ -565,6 +802,17 @@
+ 
+     if (!object || object->type != KEY) return NTE_INVALID_HANDLE;
+ 
++    if (object->key.algid == ECDSA)
++    {
++        const struct object_property *usage;
++
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        if (padding || !value || !value_len || !ret_len) return NTE_INVALID_PARAMETER;
++        if (!object->key.finalized) return NTE_BAD_KEY_STATE;
++        usage = get_object_property(object, NCRYPT_KEY_USAGE_PROPERTY);
++        if (!(*(DWORD *)usage->value & NCRYPT_ALLOW_SIGNING_FLAG)) return NTE_PERM;
++    }
++
+     return map_ntstatus(BCryptSignHash(object->key.bcrypt_key, padding, value, value_len, sig, sig_len,
+                                        ret_len, flags & ~NCRYPT_SILENT_FLAG));
+ }
+@@ -581,6 +829,14 @@
+     if (!hash || !signature) return HRESULT_FROM_WIN32(RPC_X_NULL_REF_POINTER);
+     if (!handle || key_object->type != KEY) return NTE_INVALID_HANDLE;
+ 
++    if (key_object->key.algid == ECDSA)
++    {
++        if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++        if (padding) return NTE_INVALID_PARAMETER;
++        if (!key_object->key.finalized) return NTE_BAD_KEY_STATE;
++        flags &= ~NCRYPT_SILENT_FLAG;
++    }
++
+     if (key_object->key.algid < RSA)
+     {
+         FIXME("Symmetric keys not supported.\n");
+--- a/dlls/ncrypt/ncrypt_internal.h
++++ b/dlls/ncrypt/ncrypt_internal.h
+@@ -32,10 +32,16 @@
+ {
+     enum algid algid;
+     BCRYPT_KEY_HANDLE bcrypt_key;
++    BOOL finalized;
++    BOOL material_finalized;
++    WCHAR *name;
++    DWORD storage_flags;
++    BYTE generation[16];
+ };
+ 
+ struct storage_provider
+ {
++    BOOL software;
+ };
+ 
+ enum object_type
+@@ -62,3 +68,15 @@
+         struct storage_provider storage_provider;
+     };
+ };
++
++struct persisted_key
++{
++    DWORD policy, usage;
++    BYTE generation[16];
++    BYTE private_blob[104];
++};
++
++SECURITY_STATUS ncrypt_storage_check(const WCHAR *name, DWORD flags);
++SECURITY_STATUS ncrypt_storage_read(const WCHAR *name, DWORD flags, struct persisted_key *key);
++SECURITY_STATUS ncrypt_storage_write(const struct key *key, DWORD policy, DWORD usage);
++SECURITY_STATUS ncrypt_storage_delete(const struct key *key);
+--- a/dlls/ncrypt/storage.c
++++ b/dlls/ncrypt/storage.c
+@@ -0,0 +1,265 @@
++/*
++ * Software KSP named P256 storage. All material/metadata is one protected value.
++ * Existing Wine DPAPI is reused; this is not Windows LSA or TPM isolation.
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ */
++
++#include <stdarg.h>
++#include <stdlib.h>
++#include "windef.h"
++#include "winbase.h"
++#include "winreg.h"
++#include "wincrypt.h"
++#include "ncrypt.h"
++#include "bcrypt.h"
++#include "ncrypt_internal.h"
++#include "wine/debug.h"
++
++WINE_DEFAULT_DEBUG_CHANNEL(ncrypt);
++
++static const WCHAR storage_path[] = L"Software\\Wine\\Crypto\\CNG\\SoftwareKSP\\Keys";
++static const WCHAR storage_mutex[] = L"Local\\Wine.NCrypt.SoftwareKSP.PersistentKeys.v1";
++#define MAX_NAME_CHARS 1024
++#define MAX_PROTECTED_SIZE 65536
++#define RECORD_MAGIC 0x31474e43 /* CNG1, little-endian */
++
++/* Fixed-width format shared by PE32 and PE64; no pointers or opaque handles. */
++struct record_header
++{
++    DWORD magic, version, algorithm, length, scope, policy, usage, name_chars, blob_size;
++    BYTE generation[16];
++};
++C_ASSERT(sizeof(struct record_header) == 52);
++
++static SECURITY_STATUS storage_error(LSTATUS error)
++{
++    switch (error)
++    {
++    case ERROR_SUCCESS: return ERROR_SUCCESS;
++    case ERROR_FILE_NOT_FOUND: return NTE_BAD_KEYSET;
++    case ERROR_ACCESS_DENIED: return NTE_PERM;
++    case ERROR_NOT_ENOUGH_MEMORY:
++    case ERROR_OUTOFMEMORY: return NTE_NO_MEMORY;
++    default: return NTE_INTERNAL_ERROR;
++    }
++}
++
++static SECURITY_STATUS acquire_storage(HANDLE *mutex)
++{
++    DWORD wait;
++    if (!(*mutex = CreateMutexW(NULL, FALSE, storage_mutex))) return storage_error(GetLastError());
++    wait = WaitForSingleObject(*mutex, INFINITE);
++    if (wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED) return ERROR_SUCCESS;
++    CloseHandle(*mutex);
++    *mutex = NULL;
++    return NTE_INTERNAL_ERROR;
++}
++
++static void release_storage(HANDLE mutex)
++{
++    ReleaseMutex(mutex);
++    CloseHandle(mutex);
++}
++
++static SECURITY_STATUS open_storage(DWORD flags, BOOL create, REGSAM access, HKEY *root)
++{
++    HKEY hive = flags & NCRYPT_MACHINE_KEY_FLAG ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
++    LSTATUS status;
++    /* The same store is visible to PE32 and PE64, including the HKLM namespace. */
++    access |= KEY_WOW64_64KEY;
++    if (create)
++        status = RegCreateKeyExW(hive, storage_path, 0, NULL, 0, access, NULL, root, NULL);
++    else
++        status = RegOpenKeyExW(hive, storage_path, 0, access, root);
++    return storage_error(status);
++}
++
++static SECURITY_STATUS read_value(HKEY root, const WCHAR *name, DATA_BLOB *data)
++{
++    DWORD type, size = 0;
++    LSTATUS status;
++    status = RegQueryValueExW(root, name, NULL, &type, NULL, &size);
++    if (status) return storage_error(status);
++    if (type != REG_BINARY || !size || size > MAX_PROTECTED_SIZE) return NTE_BAD_DATA;
++    if (!(data->pbData = malloc(size))) return NTE_NO_MEMORY;
++    data->cbData = size;
++    status = RegQueryValueExW(root, name, NULL, &type, data->pbData, &data->cbData);
++    if (status || type != REG_BINARY || data->cbData != size)
++    {
++        free(data->pbData);
++        data->pbData = NULL;
++        return status ? storage_error(status) : NTE_BAD_DATA;
++    }
++    return ERROR_SUCCESS;
++}
++
++static SECURITY_STATUS decode_value(const DATA_BLOB *protected, const WCHAR *name, DWORD flags,
++                                    struct persisted_key *key)
++{
++    DATA_BLOB clear = {0}, input = *protected;
++    const struct record_header *header;
++    const WCHAR *stored_name;
++    BCRYPT_ECCKEY_BLOB blob_header;
++    SECURITY_STATUS ret = NTE_BAD_DATA;
++    DWORD chars = wcslen(name) + 1, i;
++
++    if (!CryptUnprotectData(&input, NULL, NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &clear))
++        return GetLastError() == ERROR_OUTOFMEMORY ? NTE_NO_MEMORY : NTE_BAD_DATA;
++    if (clear.cbData < sizeof(*header)) goto done;
++    header = (const struct record_header *)clear.pbData;
++    if (header->magic != RECORD_MAGIC || header->version != 1 || header->algorithm != 1 ||
++        header->length != 256 || header->scope != (flags & NCRYPT_MACHINE_KEY_FLAG) ||
++        header->name_chars != chars || chars > MAX_NAME_CHARS ||
++        header->blob_size != sizeof(key->private_blob) ||
++        clear.cbData != sizeof(*header) + chars * sizeof(WCHAR) + sizeof(key->private_blob)) goto done;
++    if (header->policy & ~(NCRYPT_ALLOW_EXPORT_FLAG | NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG)) goto done;
++    if (header->usage != NCRYPT_ALLOW_ALL_USAGES && (header->usage & ~NCRYPT_ALLOW_SIGNING_FLAG)) goto done;
++    stored_name = (const WCHAR *)(header + 1);
++    if (stored_name[chars - 1]) goto done;
++    for (i = 0; i < chars - 1; ++i) if (!stored_name[i]) goto done;
++    if (lstrcmpiW(stored_name, name)) goto done;
++    memcpy(&blob_header, (const BYTE *)stored_name + chars * sizeof(WCHAR), sizeof(blob_header));
++    if (blob_header.dwMagic != BCRYPT_ECDSA_PRIVATE_P256_MAGIC || blob_header.cbKey != 32) goto done;
++    key->policy = header->policy;
++    key->usage = header->usage;
++    memcpy(key->generation, header->generation, sizeof(key->generation));
++    memcpy(key->private_blob, (const BYTE *)stored_name + chars * sizeof(WCHAR), sizeof(key->private_blob));
++    ret = ERROR_SUCCESS;
++done:
++    SecureZeroMemory(clear.pbData, clear.cbData);
++    LocalFree(clear.pbData);
++    return ret;
++}
++
++SECURITY_STATUS ncrypt_storage_check(const WCHAR *name, DWORD flags)
++{
++    SECURITY_STATUS ret;
++    HANDLE mutex;
++    HKEY root;
++    LSTATUS status;
++    if (!name[0] || wcslen(name) >= MAX_NAME_CHARS) return NTE_INVALID_PARAMETER;
++    if ((ret = acquire_storage(&mutex))) return ret;
++    ret = open_storage(flags, FALSE, KEY_QUERY_VALUE, &root);
++    if (!ret)
++    {
++        status = RegQueryValueExW(root, name, NULL, NULL, NULL, NULL);
++        ret = status == ERROR_SUCCESS ? NTE_EXISTS : storage_error(status);
++        RegCloseKey(root);
++    }
++    release_storage(mutex);
++    if (ret == NTE_BAD_KEYSET || (ret == NTE_EXISTS && (flags & NCRYPT_OVERWRITE_KEY_FLAG))) return ERROR_SUCCESS;
++    return ret;
++}
++
++SECURITY_STATUS ncrypt_storage_read(const WCHAR *name, DWORD flags, struct persisted_key *key)
++{
++    SECURITY_STATUS ret;
++    HANDLE mutex;
++    HKEY root;
++    DATA_BLOB value = {0};
++    if (!name[0] || wcslen(name) >= MAX_NAME_CHARS) return NTE_INVALID_PARAMETER;
++    if ((ret = acquire_storage(&mutex))) return ret;
++    if (!(ret = open_storage(flags, FALSE, KEY_QUERY_VALUE, &root)))
++    {
++        ret = read_value(root, name, &value);
++        if (!ret) ret = decode_value(&value, name, flags, key);
++        free(value.pbData);
++        RegCloseKey(root);
++    }
++    release_storage(mutex);
++    return ret;
++}
++
++/* Caller owns the mutex. Restore the old complete value on an observed flush failure. */
++static SECURITY_STATUS commit_value(HKEY root, const WCHAR *name, const DATA_BLOB *next,
++                                    const DATA_BLOB *previous)
++{
++    LSTATUS status, rollback;
++    if (next)
++        status = RegSetValueExW(root, name, 0, REG_BINARY, next->pbData, next->cbData);
++    else
++        status = RegDeleteValueW(root, name);
++    if (status) return storage_error(status);
++    if (!(status = RegFlushKey(root))) return ERROR_SUCCESS;
++    if (previous && previous->pbData)
++        rollback = RegSetValueExW(root, name, 0, REG_BINARY, previous->pbData, previous->cbData);
++    else
++        rollback = RegDeleteValueW(root, name);
++    if (!rollback) rollback = RegFlushKey(root);
++    if (rollback) ERR("Persistent key publication rollback failed: %ld\n", rollback);
++    return storage_error(status);
++}
++
++SECURITY_STATUS ncrypt_storage_write(const struct key *key, DWORD policy, DWORD usage)
++{
++    struct record_header *header;
++    DATA_BLOB clear = {0}, protected = {0}, previous = {0};
++    DWORD size, chars = wcslen(key->name) + 1, dpapi_flags = CRYPTPROTECT_UI_FORBIDDEN;
++    SECURITY_STATUS ret = NTE_INTERNAL_ERROR;
++    HANDLE mutex;
++    HKEY root;
++
++    clear.cbData = sizeof(*header) + chars * sizeof(WCHAR) + 104;
++    if (!(clear.pbData = calloc(1, clear.cbData))) return NTE_NO_MEMORY;
++    header = (struct record_header *)clear.pbData;
++    header->magic = RECORD_MAGIC;
++    header->version = header->algorithm = 1;
++    header->length = 256;
++    header->scope = key->storage_flags & NCRYPT_MACHINE_KEY_FLAG;
++    header->policy = policy;
++    header->usage = usage;
++    header->name_chars = chars;
++    header->blob_size = 104;
++    memcpy(header->generation, key->generation, sizeof(header->generation));
++    memcpy(header + 1, key->name, chars * sizeof(WCHAR));
++    if (BCryptExportKey(key->bcrypt_key, NULL, BCRYPT_ECCPRIVATE_BLOB,
++        clear.pbData + sizeof(*header) + chars * sizeof(WCHAR), 104, &size, 0) || size != 104) goto done;
++    if (header->scope) dpapi_flags |= CRYPTPROTECT_LOCAL_MACHINE;
++    if (!CryptProtectData(&clear, NULL, NULL, NULL, NULL, dpapi_flags, &protected))
++    {
++        ret = GetLastError() == ERROR_OUTOFMEMORY ? NTE_NO_MEMORY : NTE_INTERNAL_ERROR;
++        goto done;
++    }
++    if (!protected.cbData || protected.cbData > MAX_PROTECTED_SIZE) goto done;
++    if ((ret = acquire_storage(&mutex))) goto done;
++    if (!(ret = open_storage(key->storage_flags, TRUE, KEY_QUERY_VALUE | KEY_SET_VALUE, &root)))
++    {
++        ret = read_value(root, key->name, &previous);
++        if (!ret && !(key->storage_flags & NCRYPT_OVERWRITE_KEY_FLAG)) ret = NTE_EXISTS;
++        else if (!ret || ret == NTE_BAD_KEYSET) ret = commit_value(root, key->name, &protected, &previous);
++        RegCloseKey(root);
++    }
++    release_storage(mutex);
++done:
++    SecureZeroMemory(clear.pbData, clear.cbData);
++    free(clear.pbData);
++    LocalFree(protected.pbData);
++    free(previous.pbData);
++    return ret;
++}
++
++SECURITY_STATUS ncrypt_storage_delete(const struct key *key)
++{
++    struct persisted_key stored = {0};
++    DATA_BLOB previous = {0};
++    SECURITY_STATUS ret;
++    HANDLE mutex;
++    HKEY root;
++    if ((ret = acquire_storage(&mutex))) return ret;
++    if (!(ret = open_storage(key->storage_flags, FALSE, KEY_QUERY_VALUE | KEY_SET_VALUE, &root)))
++    {
++        ret = read_value(root, key->name, &previous);
++        if (!ret) ret = decode_value(&previous, key->name, key->storage_flags, &stored);
++        if (!ret && memcmp(stored.generation, key->generation, sizeof(key->generation))) ret = NTE_BAD_KEYSET;
++        if (!ret) ret = commit_value(root, key->name, NULL, &previous);
++        free(previous.pbData);
++        RegCloseKey(root);
++    }
++    SecureZeroMemory(&stored, sizeof(stored));
++    release_storage(mutex);
++    return ret;
++}
+--- a/dlls/ncrypt/tests/ncrypt.c
++++ b/dlls/ncrypt/tests/ncrypt.c
+@@ -829,6 +829,221 @@
+     NCryptFreeObject(prov);
+ }
+ 
++static void test_ephemeral_p256(void)
++{
++    NCRYPT_PROV_HANDLE prov;
++    NCRYPT_KEY_HANDLE key;
++    SECURITY_STATUS ret;
++    DWORD size, value;
++    WCHAR group[16];
++    BYTE public_blob[72], private_blob[104], signature[64], hash[32] = {0};
++    BYTE untouched[104];
++
++    ret = NCryptOpenStorageProvider(&prov, NULL, 0);
++    ok(!ret, "Open provider failed %#lx\n", ret);
++    if (ret) return;
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0, 0);
++    ok(!ret, "Create ephemeral P256 failed %#lx\n", ret);
++    if (ret) goto done;
++
++    ret = NCryptGetProperty(key, NCRYPT_LENGTH_PROPERTY, (BYTE *)&value, sizeof(value), &size, 0);
++    ok(!ret && value == 256 && size == sizeof(value), "Length: ret %#lx value %lu size %lu\n", ret, value, size);
++    ret = NCryptGetProperty(key, NCRYPT_ALGORITHM_GROUP_PROPERTY, (BYTE *)group, sizeof(group), &size, 0);
++    ok(!ret && !lstrcmpW(group, L"ECDSA"), "Algorithm group: %#lx\n", ret);
++    value = 0;
++    ret = NCryptSetProperty(key, NCRYPT_EXPORT_POLICY_PROPERTY, (BYTE *)&value, sizeof(value), 0);
++    ok(!ret, "Set no-export policy failed %#lx\n", ret);
++
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_blob, sizeof(public_blob), &size, 0);
++    ok(ret != ERROR_SUCCESS, "Unfinalized export unexpectedly succeeded\n");
++    ret = NCryptFinalizeKey(key, NCRYPT_SILENT_FLAG);
++    ok(!ret, "Finalize P256 failed %#lx\n", ret);
++    if (ret) goto free_key;
++
++    size = 0;
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, NULL, 0, &size, NCRYPT_SILENT_FLAG);
++    ok(!ret && size == sizeof(public_blob), "Public size query: %#lx size %lu\n", ret, size);
++    memset(untouched, 0xcc, sizeof(untouched));
++    memset(private_blob, 0xcc, sizeof(private_blob));
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, private_blob, sizeof(public_blob) - 1, &size, 0);
++    ok(ret != ERROR_SUCCESS && size == sizeof(public_blob), "Short public export: %#lx size %lu\n", ret, size);
++    ok(!memcmp(private_blob, untouched, sizeof(private_blob)), "Short export modified buffer\n");
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_blob, sizeof(public_blob), &size, 0);
++    ok(!ret && size == sizeof(public_blob), "Public export: %#lx size %lu\n", ret, size);
++    if (!ret)
++    {
++        BCRYPT_ECCKEY_BLOB *header = (BCRYPT_ECCKEY_BLOB *)public_blob;
++        ok(header->dwMagic == BCRYPT_ECDSA_PUBLIC_P256_MAGIC && header->cbKey == 32,
++           "Wrong ECC header %#lx / %lu\n", header->dwMagic, header->cbKey);
++    }
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPRIVATE_BLOB, NULL, private_blob, sizeof(private_blob), &size, 0);
++    ok(ret != ERROR_SUCCESS, "Private export with policy zero succeeded\n");
++    ok(!memcmp(private_blob, untouched, sizeof(private_blob)), "Denied export modified buffer\n");
++    ret = NCryptExportKey(key, 0, BCRYPT_PRIVATE_KEY_BLOB, NULL, private_blob, sizeof(private_blob), &size, 0);
++    ok(ret != ERROR_SUCCESS, "Generic private alias escaped export policy\n");
++    ok(!memcmp(private_blob, untouched, sizeof(private_blob)), "Denied alias modified buffer\n");
++
++    ret = NCryptSignHash(key, NULL, hash, sizeof(hash), signature, sizeof(signature), &size, NCRYPT_SILENT_FLAG);
++    ok(!ret && size == sizeof(signature), "Sign P256: %#lx size %lu\n", ret, size);
++    if (!ret)
++    {
++        ret = NCryptVerifySignature(key, NULL, hash, sizeof(hash), signature, size, 0);
++        ok(!ret, "Verify P256 failed %#lx\n", ret);
++        hash[0] ^= 1;
++        ret = NCryptVerifySignature(key, NULL, hash, sizeof(hash), signature, size, 0);
++        ok(ret != ERROR_SUCCESS, "Changed hash was accepted\n");
++    }
++
++free_key:
++    ret = NCryptFreeObject(key);
++    ok(!ret, "Free P256 key failed %#lx\n", ret);
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0, 0);
++    ok(!ret, "Create exportable P256 failed %#lx\n", ret);
++    if (ret) goto done;
++    value = NCRYPT_ALLOW_EXPORT_FLAG | NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG;
++    ret = NCryptSetProperty(key, NCRYPT_EXPORT_POLICY_PROPERTY, (BYTE *)&value, sizeof(value), 0);
++    ok(!ret, "Set export policy failed %#lx\n", ret);
++    ret = NCryptFinalizeKey(key, 0);
++    ok(!ret, "Finalize exportable P256 failed %#lx\n", ret);
++    if (!ret)
++    {
++        ret = NCryptExportKey(key, 0, BCRYPT_ECCPRIVATE_BLOB, NULL, private_blob, sizeof(private_blob), &size, 0);
++        ok(!ret && size == sizeof(private_blob), "Allowed export: %#lx size %lu\n", ret, size);
++    }
++    SecureZeroMemory(private_blob, sizeof(private_blob));
++    ret = NCryptFreeObject(key);
++    ok(!ret, "Free exportable key failed %#lx\n", ret);
++done:
++    ret = NCryptFreeObject(prov);
++    ok(!ret, "Free provider failed %#lx\n", ret);
++}
++
++static void test_named_p256(void)
++{
++    NCRYPT_PROV_HANDLE prov;
++    NCRYPT_KEY_HANDLE key = 0, duplicate = 0, old = 0, pending = 0;
++    WCHAR name[80], returned[80];
++    BYTE public_before[72], public_after[72], private_blob[104], untouched[104];
++    DWORD size, value;
++    SECURITY_STATUS ret;
++
++    swprintf(name, ARRAY_SIZE(name), L"Wine.ncrypt.P256.%lu", GetCurrentProcessId());
++    ret = NCryptOpenStorageProvider(&prov, NULL, 0);
++    ok(!ret, "Open provider failed %#lx\n", ret);
++    if (ret) return;
++    ret = NCryptOpenKey(prov, &key, name, 0, NCRYPT_SILENT_FLAG);
++    ok(ret == NTE_BAD_KEYSET, "Missing named key: %#lx\n", ret);
++    if (!ret) goto done; /* Never adopt/delete an unexpected existing key. */
++    key = 0;
++
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, 0);
++    ok(!ret, "Create abandoned key: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptFreeObject(key);
++    key = 0;
++    ok(!ret, "Free unfinalized key: %#lx\n", ret);
++    ret = NCryptOpenKey(prov, &key, name, 0, 0);
++    ok(ret == NTE_BAD_KEYSET, "Unfinalized abandoned key persisted: %#lx\n", ret);
++    if (!ret) goto done;
++    key = 0;
++
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, 0);
++    ok(!ret, "Create named P256: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptGetProperty(key, NCRYPT_NAME_PROPERTY, (BYTE *)returned, sizeof(returned), &size, 0);
++    ok(!ret && !lstrcmpW(returned, name), "Name property: %#lx\n", ret);
++    value = 0;
++    ret = NCryptSetProperty(key, NCRYPT_EXPORT_POLICY_PROPERTY, (BYTE *)&value, sizeof(value), 0);
++    ok(!ret, "Set policy zero: %#lx\n", ret);
++    ret = NCryptFinalizeKey(key, NCRYPT_SILENT_FLAG);
++    ok(!ret, "Finalize named P256: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_before, sizeof(public_before), &size, 0);
++    ok(!ret && size == sizeof(public_before), "Export original public: %#lx / %lu\n", ret, size);
++    ret = NCryptCreatePersistedKey(prov, &duplicate, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, 0);
++    ok(ret == NTE_EXISTS, "Duplicate create: %#lx\n", ret);
++    if (!ret) NCryptFreeObject(duplicate);
++    ret = NCryptFreeObject(key);
++    key = 0;
++    ok(!ret, "Free without deleting: %#lx\n", ret);
++
++    ret = NCryptOpenKey(prov, &key, name, 0, NCRYPT_SILENT_FLAG);
++    ok(!ret, "Reopen named P256: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_after, sizeof(public_after), &size, 0);
++    ok(!ret && size == sizeof(public_after), "Export reopened public: %#lx / %lu\n", ret, size);
++    ok(!memcmp(public_before, public_after, sizeof(public_before)), "Public key changed after reopen\n");
++    value = 9;
++    ret = NCryptGetProperty(key, NCRYPT_EXPORT_POLICY_PROPERTY, (BYTE *)&value, sizeof(value), &size, 0);
++    ok(!ret && value == 0, "Persisted policy: %#lx / %lu\n", ret, value);
++    memset(private_blob, 0xcc, sizeof(private_blob));
++    memset(untouched, 0xcc, sizeof(untouched));
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPRIVATE_BLOB, NULL, private_blob, sizeof(private_blob), &size, 0);
++    ok(ret != ERROR_SUCCESS, "Reopened private escaped policy zero\n");
++    ok(!memcmp(private_blob, untouched, sizeof(private_blob)), "Denied export wrote bytes\n");
++    ret = NCryptDeleteKey(key, NCRYPT_SILENT_FLAG);
++    ok(!ret, "Delete named key: %#lx\n", ret);
++    if (ret) goto done;
++    key = 0; /* Successful Delete consumes handle. */
++    ret = NCryptOpenKey(prov, &key, name, 0, 0);
++    ok(ret == NTE_BAD_KEYSET, "Open after delete: %#lx\n", ret);
++    if (!ret) goto done;
++    key = 0;
++
++    /* Failed publication must neither replace the winner nor become usable. */
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, 0);
++    ok(!ret, "Create first pending key: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptCreatePersistedKey(prov, &pending, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, 0);
++    ok(!ret || ret == NTE_EXISTS, "Create second pending key: %#lx\n", ret);
++    if (ret) pending = 0;
++    ret = NCryptFinalizeKey(key, 0);
++    ok(!ret, "Finalize first pending key: %#lx\n", ret);
++    if (ret) goto done;
++    if (pending)
++    {
++        ret = NCryptFinalizeKey(pending, 0);
++        ok(ret == NTE_EXISTS, "Colliding finalization: %#lx\n", ret);
++        ret = NCryptExportKey(pending, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_after, sizeof(public_after), &size, 0);
++        ok(ret != ERROR_SUCCESS, "Failed publication became usable\n");
++        ret = NCryptFreeObject(pending);
++        pending = 0;
++        ok(!ret, "Free failed publication: %#lx\n", ret);
++    }
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_before, sizeof(public_before), &size, 0);
++    ok(!ret, "Export winner: %#lx\n", ret);
++    old = key;
++    key = 0;
++    ret = NCryptCreatePersistedKey(prov, &key, BCRYPT_ECDSA_P256_ALGORITHM, name, 0, NCRYPT_OVERWRITE_KEY_FLAG);
++    ok(!ret, "Create overwrite: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptFinalizeKey(key, 0);
++    ok(!ret, "Finalize overwrite: %#lx\n", ret);
++    if (ret) goto done;
++    ret = NCryptExportKey(key, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_after, sizeof(public_after), &size, 0);
++    ok(!ret, "Export replacement: %#lx\n", ret);
++    ok(memcmp(public_before, public_after, sizeof(public_before)), "Overwrite did not generate a different key\n");
++    ret = NCryptDeleteKey(old, 0);
++    ok(ret != ERROR_SUCCESS, "Stale handle deleted replacement\n");
++    if (!ret) old = 0;
++    ret = NCryptOpenKey(prov, &duplicate, name, 0, 0);
++    ok(!ret, "Stale delete lost replacement: %#lx\n", ret);
++    if (!ret)
++    {
++        ret = NCryptExportKey(duplicate, 0, BCRYPT_ECCPUBLIC_BLOB, NULL, public_before, sizeof(public_before), &size, 0);
++        ok(!ret && !memcmp(public_before, public_after, sizeof(public_before)), "Replacement changed: %#lx\n", ret);
++        NCryptFreeObject(duplicate);
++    }
++    ret = NCryptDeleteKey(key, 0);
++    ok(!ret, "Delete replacement: %#lx\n", ret);
++    if (!ret) key = 0;
++done:
++    if (pending) NCryptFreeObject(pending);
++    if (old) NCryptFreeObject(old);
++    if (key) NCryptFreeObject(key);
++    NCryptFreeObject(prov);
++}
++
+ START_TEST(ncrypt)
+ {
+     test_key_import_rsa();
+@@ -841,4 +1056,6 @@
+     test_NCryptIsAlgSupported();
+     test_NCryptEncrypt();
+     test_NCryptExportKey();
++    test_ephemeral_p256();
++    test_named_p256();
+ }
+--- a/include/ncrypt.h
++++ b/include/ncrypt.h
+@@ -84,7 +84,9 @@
+ #define NCRYPT_SCHANNEL_SIGNATURE_INTERFACE 0x00010003
+ #define NCRYPT_KEY_PROTECTION_INTERFACE     0x00010004
+ 
+-#define NCRYPT_SILENT_FLAG 0x00000040
++#define NCRYPT_MACHINE_KEY_FLAG   0x00000020
++#define NCRYPT_SILENT_FLAG        0x00000040
++#define NCRYPT_OVERWRITE_KEY_FLAG 0x00000080
+ 
+ #define NCRYPT_NO_PADDING_FLAG 0x00000001
+ #define NCRYPT_PAD_PKCS1_FLAG  0x00000002
+@@ -139,6 +141,7 @@
+ SECURITY_STATUS WINAPI NCryptCreatePersistedKey(NCRYPT_PROV_HANDLE, NCRYPT_KEY_HANDLE *, const WCHAR *, const WCHAR *,
+                                                 DWORD, DWORD);
+ SECURITY_STATUS WINAPI NCryptDecrypt(NCRYPT_KEY_HANDLE, BYTE *, DWORD, void *, BYTE *, DWORD, DWORD *, DWORD);
++SECURITY_STATUS WINAPI NCryptDeleteKey(NCRYPT_KEY_HANDLE, DWORD);
+ SECURITY_STATUS WINAPI NCryptEncrypt(NCRYPT_KEY_HANDLE, BYTE *, DWORD, void *, BYTE *, DWORD, DWORD *, DWORD);
+ SECURITY_STATUS WINAPI NCryptExportKey(NCRYPT_KEY_HANDLE, NCRYPT_KEY_HANDLE, const WCHAR *, NCryptBufferDesc *, BYTE *,
+                                        DWORD, DWORD *, DWORD);
