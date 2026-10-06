@@ -11,7 +11,14 @@ An old aggregate LICENSE or a generic upstream homepage is not a complete
 corresponding-source inventory for every included binary.
 
 `licenses/` preserves upstream notices rather than relicensing their code.
-All Wine patches keep source-file copyright/license headers. Before distribution:
+All Wine patches keep source-file copyright/license headers.
+
+The exact modified-Wine/recipe snapshot and supplemental top-level Proton
+archive are available locally. The 50 pinned component references and payload
+groups are recorded in `provenance/proton-components.json`; this is not a
+complete SBOM or license/source audit. See [DISTRIBUTION.md](DISTRIBUTION.md).
+
+Before distribution:
 
 1. Inventory every binary/component and map it to exact source and license.
 2. Recover and make available corresponding sources, modifications, build scripts

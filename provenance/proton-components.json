@@ -1,0 +1,620 @@
+{
+  "artifactSha256": "75b0c916ccf6e7fcd64ed2afe576c2c0bc6a75ef63a8d74ad6dd9bee629d4d9f",
+  "artifactSourceCommit": "93bda981a6e8b7bdadb46fa3497f84df8dfc6fe2",
+  "binaryInventoryRecords": 9432,
+  "componentCount": 50,
+  "components": [
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "110313e7de47233c93ef3c746823a8d6899d5f40",
+      "licenseAuditComplete": false,
+      "path": "FEX",
+      "repository": "https://github.com/FEX-Emu/FEX/",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "8899a91c17ce9618f565f42408b47db1d6e9ccc7",
+      "licenseAuditComplete": false,
+      "path": "OpenXR-SDK",
+      "repository": "https://github.com/KhronosGroup/OpenXR-SDK",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "6cae8216a6ea19ff3f237af01e54378c1ff81fcd",
+      "licenseAuditComplete": false,
+      "path": "SPIRV-Headers",
+      "repository": "https://github.com/KhronosGroup/SPIRV-Headers",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "36872f9062b17b1a30b8ed1d81ca5ea6bb608a72",
+      "licenseAuditComplete": false,
+      "path": "Vulkan-Headers",
+      "repository": "https://github.com/KhronosGroup/Vulkan-Headers",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "b546257f770768b2c88258c533da38b91a06f737",
+      "licenseAuditComplete": false,
+      "path": "dav1d",
+      "repository": "https://github.com/videolan/dav1d.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "c8c49cc156f5044f9046ae5a8396a3a3aec2ed00",
+      "licenseAuditComplete": false,
+      "path": "dxvk",
+      "repository": "https://github.com/doitsujin/dxvk.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "bac88f0a2fe94f14138d3f60f8734600a03beb3d",
+      "licenseAuditComplete": false,
+      "path": "dxvk-nvapi",
+      "repository": "https://github.com/jp7677/dxvk-nvapi",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "667c47081c092465f87f1c97d68de9607c7023ec",
+      "licenseAuditComplete": false,
+      "path": "extras/d7vk",
+      "repository": "https://github.com/WinterSnowfall/d7vk.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "6aa60772a5241c7bd1b8d38f026b2a5168e0f93c",
+      "licenseAuditComplete": false,
+      "path": "extras/discord-rpc-bridge",
+      "repository": "https://github.com/enderice2/rpc-bridge.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "0ccdd368e9117fa6c67d4d6edc5319573c84ddd9",
+      "licenseAuditComplete": false,
+      "path": "extras/dxvk-low-latency",
+      "repository": "https://github.com/netborg-afps/dxvk-low-latency.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "fa3f90318190b9dd58d95b6f0ac1c79616ba3907",
+      "licenseAuditComplete": false,
+      "path": "extras/dxvk-sarek",
+      "repository": "https://github.com/pythonlover02/DXVK-Sarek.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "f46e514491172d15bd74b4abb1814cd2f05a763e",
+      "licenseAuditComplete": false,
+      "path": "ffmpeg",
+      "repository": "https://github.com/FFmpeg/FFmpeg",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "4b0192046158094654e865245832c66d2104219e",
+      "licenseAuditComplete": false,
+      "path": "fonts/liberation-fonts",
+      "repository": "https://github.com/liberationfonts/liberation-fonts",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "df7fec2cfa966919172ee83bfcae6c9c9b3f91b8",
+      "licenseAuditComplete": false,
+      "path": "glslang",
+      "repository": "https://github.com/KhronosGroup/glslang",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "4e2578450809c2099400cf85caf18eafcd7100aa",
+      "licenseAuditComplete": false,
+      "path": "graphene",
+      "repository": "https://github.com/ebassi/graphene",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "141218e37a1da2ffa1f3f1c996092f61782f3235",
+      "licenseAuditComplete": false,
+      "path": "gst-orc",
+      "repository": "https://github.com/GStreamer/orc.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "1d52139e35dd66ce6038aad05ca5cd6059df900d",
+      "licenseAuditComplete": false,
+      "path": "gst-plugins-rs",
+      "repository": "https://github.com/sdroege/gst-plugin-rs",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "43421c2a5b8ac5cceb52b11749df40301e1de5c0",
+      "licenseAuditComplete": false,
+      "path": "gstreamer",
+      "repository": "https://github.com/GStreamer/gstreamer.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "a25f216f5ce4eec5e45a6ab7651e20c9840a05cd",
+      "licenseAuditComplete": false,
+      "path": "kaldi",
+      "repository": "https://github.com/alphacep/kaldi",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "25eac153004f777581ca2d95e31a02ca96844332",
+      "licenseAuditComplete": false,
+      "path": "libsoup",
+      "repository": "https://github.com/GNOME/libsoup.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "53d4f7dc2dee749a973c9caa102473802644a386",
+      "licenseAuditComplete": false,
+      "path": "meson",
+      "repository": "https://github.com/mesonbuild/meson.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "69998887eeef78ab6548e8327379246c9307ff4f",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/dxvk-nvapi",
+      "repository": "https://github.com/SveSop/dxvk-nvapi.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "772b344a3594fca916999c5c5288d875332de482",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/nvcuda",
+      "repository": "https://github.com/SveSop/nvcuda.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "1993a7c745e08f8bfb11502b7489dd7fba70a08f",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/nvcuda32",
+      "repository": "https://github.com/SveSop/nvcuda.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "09ec9e1c8b25a351e415a6d0361bfacad0fd710c",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/nvenc",
+      "repository": "https://github.com/SveSop/nvenc.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "ff7220eb8a19ea7e0db8bd5c401a50b606712ff7",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/nvenc32",
+      "repository": "https://github.com/SveSop/nvenc.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "40fc2fc7c67e090c1d69194bae010edf23694100",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/wine-nvml",
+      "repository": "https://github.com/Saancreed/wine-nvml.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "ea2e23341ab84bcbebbf191f7f04cac13f1ac95b",
+      "licenseAuditComplete": false,
+      "path": "nvidia-libs/wine-nvoptix",
+      "repository": "https://github.com/SveSop/wine-nvoptix.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "18e94e63870ebcf79ebb42b7035cd3cb626ec090",
+      "licenseAuditComplete": false,
+      "path": "openfst",
+      "repository": "https://github.com/alphacep/openfst",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "91825305130f446f82054c1ec3d416321ace0072",
+      "licenseAuditComplete": false,
+      "path": "openvr",
+      "repository": "https://github.com/ValveSoftware/openvr",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "9d06b74959570772e8bcbe7a3f696664d2421167",
+      "licenseAuditComplete": false,
+      "path": "piper",
+      "repository": "https://github.com/shaunren/piper.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "c43c368d83120cc1bcc1f1df52c094f75af5744c",
+      "licenseAuditComplete": false,
+      "path": "protonfixes",
+      "repository": "https://github.com/Open-Wine-Components/umu-protonfixes",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "1507800de4b70e21be71f38caa0d9079d0bc6e45",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/flac",
+      "repository": "https://github.com/xiph/flac.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "a999701dca5c873779281938baee6bc185a8d4dc",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/libpcap",
+      "repository": "https://github.com/the-tcpdump-group/libpcap.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "a4d7a715337ded4451fec90ff8ce79728e04126c",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/libwebp",
+      "repository": "https://github.com/webmproject/libwebp.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "dd642359f8d43c09968e34ca7f1eb1121b2dfd70",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/libxkbcommon",
+      "repository": "https://github.com/xkbcommon/libxkbcommon.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "b7fa62cbe8ef0df5869e000d5b690bdedd07f33e",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/libxml2",
+      "repository": "https://github.com/GNOME/libxml2.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "d20a1523b6770dfa93a270bdda5d7c800d7ec191",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/pipewire",
+      "repository": "https://github.com/PipeWire/pipewire.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "5dceaaf3e23ee7fd17c80cb5f02a838fd6c18e01",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/speex",
+      "repository": "https://github.com/xiph/speex.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "1b28a0f61bc31162979e1f26f3981fc3637095c8",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/speexdsp",
+      "repository": "https://github.com/xiph/speexdsp.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "810f1adaf33521cc55fc510566efba2a1418174f",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/wayland-protocols",
+      "repository": "https://gitlab.freedesktop.org/wayland/wayland-protocols.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "a522a226545730551f7e7c2685fab27cf567746c",
+      "licenseAuditComplete": false,
+      "path": "steamrtdeps/xz",
+      "repository": "https://github.com/tukaani-project/xz.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "7b62a72af495075ada7506d3821b7ddfab3a227c",
+      "licenseAuditComplete": false,
+      "path": "vkd3d",
+      "repository": "https://gitlab.winehq.org/wine/vkd3d",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "3dfc6f07d0953b1e8b41705275c2c59cc7374fc5",
+      "licenseAuditComplete": false,
+      "path": "vkd3d-proton",
+      "repository": "https://github.com/HansKristian-Work/vkd3d-proton",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "b538fb5b08513aa78346cd414ad5e576a2a3e920",
+      "licenseAuditComplete": false,
+      "path": "vklayers/Vulkan-Utility-Libraries",
+      "repository": "https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "4e7fe12b797d89be07919acf3d2df5cda3f4d89f",
+      "licenseAuditComplete": false,
+      "path": "vklayers/low_latency_layer",
+      "repository": "https://github.com/Korthos-Software/low_latency_layer.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "e1f547372cf1b9d14da56621716d2137088d0061",
+      "licenseAuditComplete": false,
+      "path": "vklayers/pyroveil",
+      "repository": "https://github.com/HansKristian-Work/pyroveil.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "4f97f09ffe91900e6ca136cc26cf7966f8f6970d",
+      "licenseAuditComplete": false,
+      "path": "vklayers/vkbasalt",
+      "repository": "https://github.com/DadSchoorse/vkBasalt.git",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "12f29a3415e4967e088ed09202bfb0007e5a1787",
+      "licenseAuditComplete": false,
+      "path": "vosk-api",
+      "repository": "https://github.com/alphacep/vosk-api",
+      "sourceSnapshot": null,
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    },
+    {
+      "binaryFileMappingComplete": false,
+      "commit": "b5f2dc7b5906ef864f83df8fef94c9f539eaad2d",
+      "licenseAuditComplete": false,
+      "path": "wine",
+      "repository": "https://github.com/CachyOS/wine-cachyos.git",
+      "sourceSnapshot": "nndsk-ro-proton-0.1.0-dev.1-source.tar.zst: modified Wine",
+      "status": "PINNED_GITLINK_NOT_FULL_SOURCE_CLOSURE"
+    }
+  ],
+  "downloadedBuildInputs": [
+    {
+      "architecture": "x86",
+      "component": "wine-gecko",
+      "sha256": null,
+      "url": "https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86.tar.xz",
+      "version": "2.47.4"
+    },
+    {
+      "architecture": "x86_64",
+      "component": "wine-gecko",
+      "sha256": null,
+      "url": "https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-x86_64.tar.xz",
+      "version": "2.47.4"
+    },
+    {
+      "component": "wine-mono",
+      "sha256": null,
+      "url": "https://github.com/madewokherd/wine-mono/releases/download/wine-mono-11.2.0/wine-mono-11.2.0-x86.tar.xz",
+      "version": "11.2.0"
+    },
+    {
+      "component": "xalia",
+      "sha256": null,
+      "url": "https://github.com/madewokherd/xalia/releases/download/xalia-0.4.9/xalia-0.4.9-net48-mono.zip",
+      "version": "0.4.9"
+    }
+  ],
+  "embeddedVersions": [
+    {
+      "meaning": "EMBEDDED_VERSION_ONLY_NOT_SOURCE_ATTESTATION",
+      "path": "files/lib/wine/dxvk/version",
+      "reportedVersion": "c8c49cc156f5044f9046ae5a8396a3a3aec2ed00 dxvk (v3.0.1-6-gc8c49cc)",
+      "sha256": "cc8fa5fa7f1877a626126b346ae764d0eda848b80480a48a62ee8d672c0fa6d6"
+    },
+    {
+      "meaning": "EMBEDDED_VERSION_ONLY_NOT_SOURCE_ATTESTATION",
+      "path": "files/lib/wine/vkd3d-proton/version",
+      "reportedVersion": "3dfc6f07d0953b1e8b41705275c2c59cc7374fc5 vkd3d-proton (vkd3d-1.1-5438-g3dfc6f0)",
+      "sha256": "d0049d01bc0d7a383c4c5b0fc1b0e0271541935191ba65b3eed20fecb005fa65"
+    },
+    {
+      "meaning": "EMBEDDED_VERSION_ONLY_NOT_SOURCE_ATTESTATION",
+      "path": "files/lib/vkd3d/version",
+      "reportedVersion": "7b62a72af495075ada7506d3821b7ddfab3a227c vkd3d (vkd3d-2.0-127-g7b62a72)",
+      "sha256": "253650d86d9cf21a68d0ad79d8e985fc497eab40a7b1360c4b001c75074914f2"
+    },
+    {
+      "meaning": "EMBEDDED_VERSION_ONLY_NOT_SOURCE_ATTESTATION",
+      "path": "version",
+      "reportedVersion": "1783861990 cachyos-11.0-20260702-slr",
+      "sha256": "6df2c0d8bd886fd69e75f324bc89397ba98c21c2ad7057ceb93422fa329cb6bb"
+    }
+  ],
+  "fullRuntimeSourceComplete": false,
+  "licenseSourceAuditComplete": false,
+  "limitations": [
+    "Gitlink presence does not prove shipped code was built unmodified from that commit.",
+    "Named payload paths/version strings do not prove a complete binary-to-source mapping.",
+    "SDK libraries and nested/downloaded sources, data and model rights still require inventory.",
+    "No client files, prefixes, credentials or private key material are included."
+  ],
+  "pathGroups": [
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "dxvk",
+      "inventoryRecords": 15,
+      "inventorySha256": "e84ca20a15ba4f1bb3512b23991920c3fc98af94d4573086d76cc85b6b0c01b8",
+      "prefix": "files/lib/wine/dxvk/",
+      "regularFileBytes": 45447609,
+      "regularFiles": 13
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "vkd3d-proton",
+      "inventoryRecords": 7,
+      "inventorySha256": "45ae699de440106baa8a7da52d05ea510bd2f7a721de0b3e3883eeb332b91339",
+      "prefix": "files/lib/wine/vkd3d-proton/",
+      "regularFileBytes": 12759149,
+      "regularFiles": 5
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "vkd3d",
+      "inventoryRecords": 9,
+      "inventorySha256": "3725726be3fb07fb876de7b8c2f51b3de0c1675410249d2dc84b582aba72aa28",
+      "prefix": "files/lib/vkd3d/",
+      "regularFileBytes": 6675454,
+      "regularFiles": 7
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "gecko",
+      "inventoryRecords": 80,
+      "inventorySha256": "0ffeca8cdcd5bfb99b3774882154bd594aaa778c4fc956475939e0a2e7feacf2",
+      "prefix": "files/share/wine/gecko/",
+      "regularFileBytes": 217229300,
+      "regularFiles": 60
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "mono",
+      "inventoryRecords": 3406,
+      "inventorySha256": "17dc21ad9fecf850e67978c6950ee50e9bf58978d4d0139d017bbbe7581ddf6b",
+      "prefix": "files/share/wine/mono/",
+      "regularFileBytes": 229873208,
+      "regularFiles": 2790
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "xalia",
+      "inventoryRecords": 17,
+      "inventorySha256": "9171d44bf4f45432dbc6ad121ba99a27ab3868f735069c906a50cabc11f0ff62",
+      "prefix": "files/share/xalia/",
+      "regularFileBytes": 5946733,
+      "regularFiles": 17
+    },
+    {
+      "binaryAssociation": "PATH_GROUP_ONLY_NOT_PROOF_OF_SOURCE_IDENTITY",
+      "id": "espeak-data",
+      "inventoryRecords": 391,
+      "inventorySha256": "41217131d45ccd8452bf7cc7e324514ea5701005c02bfda5dd1fe42098b67102",
+      "prefix": "files/share/espeak-ng-data/",
+      "regularFileBytes": 17991651,
+      "regularFiles": 355
+    }
+  ],
+  "publicationReady": false,
+  "recordSources": {
+    ".gitmodules": {
+      "sha256": "58fecc73e45087ba76d4f6df79ef49ef88ce7f63430592261893f64779719914",
+      "upstreamGitBlob": "eb8da3e0808688f856d6391cc307b090db7e9c86"
+    },
+    "LICENSE.proton": {
+      "sha256": "eb61fb9ebaf41402d2d1a21fde9eae0c87e164daa20e388eac7c1a8099401a7a",
+      "upstreamGitBlob": "6118cfbf835b56dd5325d304f3f1a8d9deac62ca"
+    },
+    "Makefile.in": {
+      "sha256": "636a1f3ef43d0d5a7e43175a936e1a531757ddcc827419b582f07a7060a31259",
+      "upstreamGitBlob": "574376b7b631a0251ac1422a54c7912be905df7f"
+    },
+    "dist.LICENSE": {
+      "sha256": "e4829d4e560bd13d378d47592a15d5c7eb1b9a702279eeea9b2f0fc6e60e0b31",
+      "upstreamGitBlob": "ad7aea9c626b0d8593bc60047f86be8f60b8b370"
+    }
+  },
+  "runtimeId": "nndsk-ro-proton",
+  "runtimeVersion": "0.1.0-dev.1",
+  "schemaVersion": 1,
+  "scope": "Committed Proton top-level source and exact gitlinks; not complete corresponding source for all inherited binaries.",
+  "sdk": {
+    "digest": null,
+    "reference": "registry.gitlab.steamos.cloud/proton/steamrt4/sdk/x86_64:4.0.20260331.220802-0",
+    "usedForModifiedModuleBuild": false
+  },
+  "snapshotType": "STATIC_UPSTREAM_SOURCE_REFERENCE_INVENTORY_NOT_COMPLETE_SBOM",
+  "transitiveSourceAuditComplete": false,
+  "upstreamProton": {
+    "commit": "3edf6fbb8af940de5c65b9dd0fbf366b51a218a8",
+    "release": "cachyos-11.0-20260702-slr",
+    "repository": "https://github.com/CachyOS/proton-cachyos.git"
+  }
+}

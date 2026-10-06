@@ -33,3 +33,9 @@ across hosts. Deterministic packaging is a separate property.
 See [build instructions](docs/BUILD.md), [risks](docs/RISKS.md),
 [launch topology](docs/LAUNCH.md), and [redistribution status](docs/LICENSING.md).
 Nothing is published remotely or integrated into launcher defaults.
+
+HoneyRO compatibility/stability on the freshly built artifact is
+[accepted PASS](docs/ACCEPTANCE-20261006.md); the measured new-build session
+lasted over 20 minutes. Additional game tests were stopped by the user.
+[Distribution preparation](docs/DISTRIBUTION.md) is the next milestone;
+complete inherited-component source/license closure remains outstanding.

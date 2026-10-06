@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "artifactSha256": "75b0c916ccf6e7fcd64ed2afe576c2c0bc6a75ef63a8d74ad6dd9bee629d4d9f",
+  "runtimeId": "nndsk-ro-proton",
+  "runtimeVersion": "0.1.0-dev.1",
+  "upstreamProton": {
+    "commit": "3edf6fbb8af940de5c65b9dd0fbf366b51a218a8",
+    "release": "cachyos-11.0-20260702-slr",
+    "repository": "https://github.com/CachyOS/proton-cachyos.git"
+  },
+  "sourceArtifact": {
+    "filename": "proton-cachyos-3edf6fbb8af9-source.tar.zst",
+    "root": "proton-cachyos-source",
+    "format": "tar.zst",
+    "size": 74376102,
+    "sha256": "d7832130e4da8b1e9a79c966b2b65dd2b7cf09bcd287aab5d63a1bf89c1f4d85"
+  },
+  "sourceCustody": {
+    "sourceCommit": "3edf6fbb8af940de5c65b9dd0fbf366b51a218a8",
+    "trackedBlobCount": 3763,
+    "omittedSubmoduleCount": 50,
+    "regularFileBytes": 181245745,
+    "allTrackedBlobIdentitiesAndModesMatch": true,
+    "scope": "Top-level Proton committed tree only; submodule payloads and downloaded/nested sources omitted"
+  },
+  "recipe": {
+    "method": "git archive of exact committed objects, compressed with zstd -19 -T1",
+    "gitArchiveTarUmask": "0022",
+    "workingTreeEditsIncluded": false,
+    "submodulePayloadsIncluded": false,
+    "downloadedPayloadsIncluded": false
+  },
+  "fullRuntimeSourceComplete": false,
+  "licenseSourceAuditComplete": false,
+  "publicationReady": false
+}

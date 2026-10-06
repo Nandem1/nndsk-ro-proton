@@ -2,6 +2,9 @@
 
 Status: **experimental, not stable, not publication-ready, not a universal runner**.
 The launcher and original validated runner remain unchanged.
+HoneyRO compatibility/stability is now **accepted PASS**; the user stopped
+additional game tests. See [the acceptance record](ACCEPTANCE-20261006.md)
+for the distinction between measured PASS and waived follow-up tests.
 
 ## Identity and custody
 
@@ -78,7 +81,8 @@ does not establish or exclude a leak. Runner, original prefix and protected
 guest/core hashes remained unchanged at the post-window check. Evidence:
 `work/smoke-01/cycle-01/stability-summary.json` and `.md`, samples, user markers
 and the recorded window result. Game remains open with no automatic deadline
-stop. Natural exit, cleanup and repeated cycles remain PENDING. The packaged
+stop. Natural exit, cleanup and repeated cycles were not exercised and further
+tests were waived by the user. The packaged
 manifest's validation fields are its earlier packaging-time snapshot, not a
 claim that these later observations were already available when it was built.
 
@@ -90,10 +94,16 @@ running game. Owned CNG probe results above remain independently valid.
 
 ## Remaining release gates
 
-Longer-term stability and multiple game cycles; native PE64/broader conformance;
+Unmeasured risks remain longer-term stability and multiple game cycles;
+native PE64/broader conformance;
 kernel capability/error-path/performance coverage and known COW cleanup risks;
 immutable toolchain/full source-build feasibility; complete inherited-component
-source/license closure; explicit SakuraRO Wine 7.16 old-WoW64 comparison.
+source/license closure. SakuraRO Wine 7.16 old-WoW64 comparison is deferred,
+not assumed PASS. No further game tests are scheduled under the current request.
+
+Distribution preparation continues without runtime changes:
+[DISTRIBUTION.md](DISTRIBUTION.md). Supplemental exact top-level Proton source
+is now archived; this is not closure of all inherited third-party sources.
 
 No remote repository, release/tag publication, launcher updater integration,
 client/security patch, TPM substitution or additional Wine fix was performed.
