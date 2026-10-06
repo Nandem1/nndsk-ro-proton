@@ -1,0 +1,158 @@
+--- a/dlls/crypt32/cert.c
++++ b/dlls/crypt32/cert.c
+@@ -555,6 +555,11 @@
+              cert->ctx.pbCertEncoded, cert->ctx.cbCertEncoded, pvData,
+              pcbData);
+             break;
++        case CERT_SHA256_HASH_PROP_ID:
++            ret = CertContext_GetHashProp(cert, dwPropId, CALG_SHA_256,
++             cert->ctx.pbCertEncoded, cert->ctx.cbCertEncoded, pvData,
++             pcbData);
++            break;
+         case CERT_MD5_HASH_PROP_ID:
+             ret = CertContext_GetHashProp(cert, dwPropId, CALG_MD5,
+              cert->ctx.pbCertEncoded, cert->ctx.cbCertEncoded, pvData,
+@@ -760,6 +765,7 @@
+         case CERT_CROSS_CERT_DIST_POINTS_PROP_ID:
+         case CERT_OCSP_RESPONSE_PROP_ID:
+         case CERT_RENEWAL_PROP_ID:
++        case CERT_SHA256_HASH_PROP_ID:
+         {
+             if (pvData)
+             {
+--- a/dlls/crypt32/tests/cert.c
++++ b/dlls/crypt32/tests/cert.c
+@@ -310,6 +310,106 @@
+      dwSizeWithNull,size);
+ }
+ 
++static void testCertSha256Property(void)
++{
++    PCCERT_CONTEXT context;
++    BYTE expected[32] = {0}, hash[32], stored[32];
++    CRYPT_DATA_BLOB blob;
++    DWORD size, prop;
++    BOOL ret, found;
++
++    context = CertCreateCertificateContext(X509_ASN_ENCODING, bigCert, sizeof(bigCert));
++    ok(context != NULL, "CertCreateCertificateContext failed: %08lx\n", GetLastError());
++    if (!context) return;
++
++    ok(IS_CERT_HASH_PROP_ID(CERT_SHA256_HASH_PROP_ID), "SHA256 is not a certificate hash property\n");
++    prop = CertEnumCertificateContextProperties(context, 0);
++    ok(!prop, "Unexpected initial property %lu\n", prop);
++
++    size = sizeof(expected);
++    ret = CryptHashCertificate(0, CALG_SHA_256, 0, context->pbCertEncoded,
++                              context->cbCertEncoded, expected, &size);
++    ok(ret, "CryptHashCertificate failed: %08lx\n", GetLastError());
++    ok(size == sizeof(expected), "Unexpected SHA256 size %lu\n", size);
++
++    /* A size-only query and a failed short-buffer query must not cache a hash. */
++    size = 0;
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, NULL, &size);
++    ok(ret, "Size query failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected property size %lu\n", size);
++    prop = CertEnumCertificateContextProperties(context, 0);
++    ok(!prop, "Size query cached property %lu\n", prop);
++
++    memset(hash, 0xcc, sizeof(hash));
++    size = sizeof(hash) - 1;
++    SetLastError(0xdeadbeef);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(!ret, "Short-buffer query succeeded\n");
++    ok(GetLastError() == ERROR_MORE_DATA, "Unexpected error %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected required size %lu\n", size);
++    ok(hash[0] == 0xcc && hash[sizeof(hash) - 1] == 0xcc, "Short-buffer query wrote data\n");
++    prop = CertEnumCertificateContextProperties(context, 0);
++    ok(!prop, "Short-buffer query cached property %lu\n", prop);
++
++    size = sizeof(hash);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(ret, "SHA256 property query failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected property size %lu\n", size);
++    if (ret) ok(!memcmp(hash, expected, sizeof(hash)), "Unexpected SHA256 property value\n");
++
++    found = FALSE;
++    prop = 0;
++    while ((prop = CertEnumCertificateContextProperties(context, prop)))
++        if (prop == CERT_SHA256_HASH_PROP_ID) found = TRUE;
++    ok(found, "Successful SHA256 query did not cache the property\n");
++
++    memset(hash, 0xcc, sizeof(hash));
++    size = sizeof(hash);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(ret, "Cached SHA256 query failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected cached property size %lu\n", size);
++    if (ret) ok(!memcmp(hash, expected, sizeof(hash)), "Unexpected cached SHA256 value\n");
++
++    size = 0;
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, NULL, &size);
++    ok(ret, "Cached size query failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected cached query size %lu\n", size);
++
++    memset(hash, 0xcc, sizeof(hash));
++    size = sizeof(hash) - 1;
++    SetLastError(0xdeadbeef);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(!ret, "Cached short-buffer query succeeded\n");
++    ok(GetLastError() == ERROR_MORE_DATA, "Unexpected cached query error %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected cached required size %lu\n", size);
++    ok(hash[0] == 0xcc && hash[sizeof(hash) - 1] == 0xcc, "Cached short-buffer query wrote data\n");
++
++    /* The generic BLOB setter must store, return, and remove the property. */
++    memcpy(stored, expected, sizeof(stored));
++    stored[0] ^= 0xff;
++    blob.pbData = stored;
++    blob.cbData = sizeof(stored);
++    ret = CertSetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, 0, &blob);
++    ok(ret, "SHA256 property setter failed: %08lx\n", GetLastError());
++    size = sizeof(hash);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(ret, "Stored SHA256 query failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected stored property size %lu\n", size);
++    if (ret) ok(!memcmp(hash, stored, sizeof(hash)), "Stored SHA256 was recomputed\n");
++
++    ret = CertSetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, 0, NULL);
++    ok(ret, "Removing SHA256 property failed: %08lx\n", GetLastError());
++    prop = CertEnumCertificateContextProperties(context, 0);
++    ok(!prop, "Removing SHA256 left property %lu\n", prop);
++    size = sizeof(hash);
++    ret = CertGetCertificateContextProperty(context, CERT_SHA256_HASH_PROP_ID, hash, &size);
++    ok(ret, "SHA256 regeneration failed: %08lx\n", GetLastError());
++    ok(size == sizeof(hash), "Unexpected regenerated property size %lu\n", size);
++    if (ret) ok(!memcmp(hash, expected, sizeof(hash)), "Unexpected regenerated SHA256\n");
++
++    CertFreeCertificateContext(context);
++}
++
+ static const CHAR cspNameA[] = "WineCryptTemp";
+ static const BYTE v1CertWithPubKey[] = {
+ 0x30,0x81,0x95,0x02,0x01,0x01,0x30,0x02,0x06,0x00,0x30,0x15,0x31,0x13,0x30,
+@@ -4512,6 +4612,7 @@
+ {
+     testAddCert();
+     testCertProperties();
++    testCertSha256Property();
+     testCreateCert();
+     testDupCert();
+     testFindCert();
+--- a/include/wincrypt.h
++++ b/include/wincrypt.h
+@@ -2593,6 +2593,7 @@
+ #define CERT_CA_DISABLE_CRL_PROP_ID                82
+ #define CERT_ROOT_PROGRAM_CERT_POLICIES_PROP_ID    83
+ #define CERT_ROOT_PROGRAM_NAME_CONSTRAINTS_PROP_ID 84
++#define CERT_SHA256_HASH_PROP_ID                   107
+ 
+ #define CERT_FIRST_RESERVED_PROP_ID                85
+ #define CERT_LAST_RESERVED_PROP_ID                 0x00007fff
+@@ -2601,7 +2602,7 @@
+ 
+ #define IS_CERT_HASH_PROP_ID(x) \
+  ((x) == CERT_SHA1_HASH_PROP_ID || (x) == CERT_MD5_HASH_PROP_ID || \
+-  (x) == CERT_SIGNATURE_HASH_PROP_ID)
++  (x) == CERT_SHA256_HASH_PROP_ID || (x) == CERT_SIGNATURE_HASH_PROP_ID)
+ 
+ #define IS_PUBKEY_HASH_PROP_ID(x) \
+  ((x) == CERT_ISSUER_PUBLIC_KEY_MD5_HASH_PROP_ID || \
