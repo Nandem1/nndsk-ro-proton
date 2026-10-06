@@ -32,6 +32,7 @@
   "testOnlyPatches": [
     {"path": "patches/tests/0001-kernel32-cow-private-view-expectations.patch", "sha256": "2304c3d39c0f1550fd8f20583da9f2b07947497bc2089a552e40683472a143ff"}
   ],
+  "testSourceSha256": {"dlls/kernel32/tests/virtual.c": "3c026414732e7c068bfd0bd0467f3074c7d7f306a121beee5dd63de59e83f0f1"},
   "method": "pinned-binary-base-with-source-built-module-overlay",
   "publicationReady": false
 }

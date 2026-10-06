@@ -1,0 +1,37 @@
+--- a/dlls/kernel32/tests/virtual.c
++++ b/dlls/kernel32/tests/virtual.c
+@@ -4114,6 +4114,12 @@
+ 
+         for (j = 0; j < ARRAY_SIZE(view); j++)
+         {
++            /* Initially shared writable views are not tracked for private
++             * copies when subsequently changed to WRITECOPY. */
++            BOOL untracked_cow = !(sec_flags & SEC_IMAGE) &&
++                                 (view[j].prot == PAGE_READWRITE ||
++                                  view[j].prot == PAGE_EXECUTE_READWRITE);
++
+             nt_base = map_view_of_file(hmap, view[j].access);
+             if (nt_base)
+             {
+@@ -4278,10 +4284,10 @@
+                 if (ret) *(DWORD*)base = 0xdeadbeef;
+                 ret = VirtualQuery(base, &info, sizeof(info));
+                 ok(ret, "%ld: VirtualQuery failed %ld\n", j, GetLastError());
+-                todo_wine
++                todo_wine_if( untracked_cow )
+                 ok(info.Protect == PAGE_READWRITE, "VirtualProtect wrong prot, map %#lx, view %#lx got %#lx\n",
+                    page_prot[i], view[j].prot, info.Protect );
+-                todo_wine_if (!(sec_flags & SEC_IMAGE))
++                todo_wine_if( untracked_cow )
+                 ok(info.RegionSize == si.dwPageSize, "wrong region size %#Ix after write, map %#lx, view %#lx got %#lx\n",
+                    info.RegionSize, page_prot[i], view[j].prot, info.Protect );
+ 
+@@ -4316,7 +4322,7 @@
+ 
+                         ret = VirtualQuery(base, &info, sizeof(info));
+                         ok(ret, "%ld: VirtualQuery failed %ld\n", j, GetLastError());
+-                        todo_wine_if( map_prot_written( page_prot[k] ) != actual_prot )
++                        todo_wine_if( untracked_cow && map_prot_written( page_prot[k] ) != actual_prot )
+                         ok(info.Protect == map_prot_written( page_prot[k] ),
+                            "VirtualProtect wrong prot, map %#lx, view %#lx, requested prot %#lx got %#lx\n",
+                            page_prot[i], view[j].prot, page_prot[k], info.Protect );

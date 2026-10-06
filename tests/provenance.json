@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceRoot": "nndsk-ro-launcher",
+  "method": "Byte-exact import of accepted own API probe sources; no proprietary guest software included.",
+  "sources": [
+    {
+      "path": "tests/cow-probe/probe.c",
+      "origin": ".audit/xshield/cow-probe/probe.c",
+      "sha256": "66d0319d6829638e771543d11a6e531880b97dc4d1384644ef03cb72b346165e",
+      "changes": []
+    },
+    {
+      "path": "tests/cow-probe/fixture.c",
+      "origin": ".audit/xshield/cow-probe/fixture.c",
+      "sha256": "2c885af53045d6ed1d24a80030272c31a07324e78ac425fc3213d7c3d86d90af",
+      "changes": []
+    },
+    {
+      "path": "tests/cow-probe/iat-loader/probe.c",
+      "origin": ".audit/xshield/cow-probe/iat-loader/probe.c",
+      "sha256": "80745ac9598335374bbefd493bde3e93195af8f9e14c581b6b26e2372008e3b2",
+      "changes": []
+    },
+    {
+      "path": "tests/cow-probe/iat-loader/fixture.c",
+      "origin": ".audit/xshield/cow-probe/iat-loader/fixture.c",
+      "sha256": "5d6bc79ca72088568c3113744c9eb282823886e5422808b17410d1eb9a14300d",
+      "changes": []
+    },
+    {
+      "path": "tests/cow-candidate/boundary-probe.c",
+      "origin": ".audit/xshield/cow-candidate/boundary-probe.c",
+      "sha256": "10e6a8a2276ec4183e8e767342aa0590670468b994bf05a43b798e969db1d498",
+      "changes": []
+    },
+    {
+      "path": "tests/cng-persist-probe.c",
+      "origin": ".audit/xshield/cng-persist-probe.c",
+      "sha256": "28d5c1f23e6d65865ae1fcd6b8d47a642bd00b26158519f8edc06f70bc8407eb",
+      "changes": []
+    },
+    {
+      "path": "tests/cng-persist-probe-v2.c",
+      "origin": ".audit/xshield/cng-persist-probe-v2.c",
+      "sha256": "b41fe7c381581348964cc53e1da1b7bcdd31ecd9d1af575444eda8d5286f3592",
+      "changes": []
+    },
+    {
+      "path": "tests/cng-persist-negative-probe.c",
+      "origin": ".audit/xshield/cng-persist-negative-probe.c",
+      "sha256": "20205a7cb7e4d73e7994a409a416f2f2154be1084b2bf636f7da5a9cdfe1ac1b",
+      "changes": []
+    },
+    {
+      "path": "tests/cng-persist-race-probe.c",
+      "origin": ".audit/xshield/cng-persist-race-probe.c",
+      "sha256": "4d4d489618705226d7e93b8f4238eeeb043b72b7f8a9c191bc4ca4be1d19734f",
+      "changes": []
+    },
+    {
+      "path": "tests/cng-ncrypt-ephemeral-probe.c",
+      "origin": ".audit/xshield/cng-ncrypt-ephemeral-probe.c",
+      "sha256": "9dd34764c445f2713d1fd81e465add7bf41217799e1b981faa054c4eaed68f23",
+      "changes": []
+    }
+  ]
+}
