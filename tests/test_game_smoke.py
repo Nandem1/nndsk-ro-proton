@@ -67,9 +67,10 @@ class SmokeTests(unittest.TestCase):
         self.assertEqual(env, {'DISPLAY': ':0', 'PATH': '/usr/bin'})
 
     def test_cng_traces_are_entries_not_success_claims(self):
-        entry = '1.0:trace:ncrypt:NCryptOpenKey:(0x1234, 0xabcd, L"Own.Key", 0, 0x40)'
+        entry = '1.0:trace:ncrypt:NCryptOpenKey (0x1234, 0xabcd, L"Own.Key", 0, 0x40)'
         self.assertIsNone(smoke.diagnostic(entry, False))
         self.assertEqual(smoke.diagnostic(entry, True)['kind'], 'cng-entry')
+        self.assertEqual(smoke.diagnostic(entry.replace('NCryptOpenKey ', 'NCryptOpenKey:'), True)['kind'], 'cng-entry')
         self.assertIsNone(smoke.diagnostic('trace:ncrypt:dump_private_blob:deadbeef', True))
         self.assertIn('redacted', smoke.diagnostic('err:winhttp:request:Authorization Bearer secret', False)['line'])
 

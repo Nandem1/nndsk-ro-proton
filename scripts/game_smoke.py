@@ -260,7 +260,9 @@ def resource_sample(identity):
 
 def diagnostic(line, trace_cng):
     """Strict entry-only CNG allowlist; no relay or buffer-content records."""
-    cng = re.search(r"(?:trace|fixme):ncrypt:(\w+):", line)
+    # Wine's __wine_dbg_header prints "class:channel:function " (space),
+    # not a mandatory trailing colon after the function name.
+    cng = re.search(r"(?:trace|fixme):ncrypt:(\w+)(?=[:\s])", line)
     if cng and trace_cng and cng[1] in CNG_FUNCTIONS:
         kind = "cng-entry"
     elif re.search(r"err:|trace:msgbox:|Unhandled exception|assertion failed|segfault", line, re.I):
