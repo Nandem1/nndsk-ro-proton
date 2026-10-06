@@ -1,0 +1,6 @@
+# Unified-diff context contains a significant space on blank lines. Preserve it.
+patches/** -whitespace
+# Verbatim upstream license and locked generator data, not editable source.
+LICENSE -whitespace
+licenses/** -whitespace
+vendor/** -whitespace

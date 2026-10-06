@@ -1,0 +1,42 @@
+{
+  "dlls/crypt32/cert.c": {
+    "candidateSha256": "ee3b2b5d448e27695e62ead613cf05be47d52114c8c356472d84f123bb7f20b8",
+    "upstreamGitBlob": "7f8f4965d0291443fbd2986b08f1395a867da7f7"
+  },
+  "dlls/crypt32/tests/cert.c": {
+    "candidateSha256": "2c2172b1961bd7b573e0c7003d335f7a46daa9afd7d71e8d7849bfc4f1001ec8",
+    "upstreamGitBlob": "aeab4c02713bcaf181acc8eeebcf08a78b69a757"
+  },
+  "dlls/ncrypt/Makefile.in": {
+    "candidateSha256": "9993022b32d964b8cfdfee7dd9424336a2fd6d147f9c39e6838379573fc917b3",
+    "upstreamGitBlob": "9b63d5e511fdd92b4c58b30d31e77f90424b2d62"
+  },
+  "dlls/ncrypt/main.c": {
+    "candidateSha256": "b1c658c360769afc4a5b203edbf66908b45420ca8e5aa8278139f5f7ea672a43",
+    "upstreamGitBlob": "656c80a5cb9acf556d7f4a6046a8aaa12c0ad52d"
+  },
+  "dlls/ncrypt/ncrypt_internal.h": {
+    "candidateSha256": "eb1e75cfcddbbcd0d5c518e312d3e9d437e4b70205103e2c3d8fe6fec22f1a8e",
+    "upstreamGitBlob": "effb75df45f3723a3d013520a1e868ccdad3b85d"
+  },
+  "dlls/ncrypt/storage.c": {
+    "candidateSha256": "8aee5313616898f5ca3c1ee62fc0feae27dbc0d420be1f1dc86ebb263229030f",
+    "upstreamGitBlob": null
+  },
+  "dlls/ncrypt/tests/ncrypt.c": {
+    "candidateSha256": "47e0ba57dbce7546a00e0fe0457031ef538dcb438e535a1bbce949d812a4fb8e",
+    "upstreamGitBlob": "f5dae649a10c8b10ea4e99223b4c4a97a5565395"
+  },
+  "dlls/ntdll/unix/virtual.c": {
+    "candidateSha256": "1231737b684a0f1fb6f258288e8ed24cf12bb5873167b126bd38b7f646f79349",
+    "upstreamGitBlob": "574f9f0933d594d874e0350dd9706649b0ec43fb"
+  },
+  "include/ncrypt.h": {
+    "candidateSha256": "c9579d7240706d09b809bb2522eecac90e5b915d069ac198d30bdc6c04c5f191",
+    "upstreamGitBlob": "7a1769c8bd9426847c21d2ae2e9ece2c34d06a4b"
+  },
+  "include/wincrypt.h": {
+    "candidateSha256": "4b70b0f29e4c3b5dda0b146b3d64a258b65d617d146a0c3ff8c666f1744cf2dc",
+    "upstreamGitBlob": "e3a7ad0eb24276ccd86683e62da0a7355ed9c671"
+  }
+}
