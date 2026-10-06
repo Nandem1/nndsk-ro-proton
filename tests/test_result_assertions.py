@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 """Adversarial parser tests using only synthetic owned-API result records."""
 
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 import result_assertions as gate
@@ -76,6 +80,19 @@ def ncrypt_result(phase="reopen"):
                   "duplicate_name_contract=PASS"]
     lines += ["probe_exit=0x00000000"]
     return "\n".join(lines)
+
+
+def virtual_result(*, normal_failure=False):
+    rows = ["00f0:virtual: 4 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.",
+            "00f8:virtual: 3 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.",
+            "0100:virtual: 3 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.",
+            "0108:virtual: 3 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.",
+            "virtual.c:1444: Test succeeded inside todo block: NtAreMappedFilesTheSame returned 0"]
+    if normal_failure:
+        rows.append("virtual.c:999: Test failed: Synthetic normal regression")
+    rows.append("00e8:virtual: 32160 tests executed (100 marked as todo, 0 as flaky, "
+                + ("2 failures" if normal_failure else "1 failure") + "), 0 skipped.")
+    return "\n".join(rows) + "\n"
 
 
 class ResultAssertionsTest(unittest.TestCase):
@@ -169,6 +186,117 @@ class ResultAssertionsTest(unittest.TestCase):
     def test_boundary_malformed_query_is_valueerror(self):
         with self.assertRaises(ValueError):
             public_gate.validate_probe("boundary-probe", boundary_result().replace("Address=0x00100000 ", ""))
+
+    def test_virtual_capture_preserves_each_child_and_parent_pid(self):
+        capture = public_gate.capture_virtual_suite(virtual_result())
+        self.assertEqual(capture["summaryCount"], 5)
+        self.assertEqual([row["winePidHex"] for row in capture["summaries"]],
+                         ["00f0", "00f8", "0100", "0108", "00e8"])
+        self.assertEqual([row["tests"] for row in capture["summaries"]], [4, 3, 3, 3, 32160])
+        self.assertEqual(capture["tests"], 32173)
+        self.assertEqual(capture["expectedTodos"], 100)
+        self.assertEqual(capture["unexpectedTodoSuccesses"], 1)
+        self.assertEqual(capture["unexpectedTodoRecords"][0]["sourceLine"], 1444)
+        self.assertIsNone(capture["unexpectedTodoRecords"][0]["winePid"])
+        self.assertFalse(capture["formalGreen"])
+        self.assertFalse(capture["regressionDetected"])
+
+    def test_virtual_normal_failure_is_preserved_and_blocks_progress(self):
+        capture = public_gate.capture_virtual_suite(virtual_result(normal_failure=True))
+        self.assertEqual(capture["normalFailures"], 1)
+        self.assertEqual(capture["reportedFailures"], 2)
+        self.assertEqual(capture["normalFailureRecords"][0]["sourceLine"], 999)
+        self.assertTrue(capture["failureAccountingMatches"])
+        self.assertTrue(capture["regressionDetected"])
+        self.assertFalse(capture["formalGreen"])
+
+    def test_virtual_unaccounted_failure_not_hidden(self):
+        text = virtual_result().replace("1 failure)", "2 failures)")
+        capture = public_gate.capture_virtual_suite(text)
+        self.assertFalse(capture["failureAccountingMatches"])
+        self.assertTrue(capture["regressionDetected"])
+
+    def test_virtual_duplicate_pid_rejected_with_partial_evidence(self):
+        text = virtual_result().replace("00f8:virtual:", "00f0:virtual:")
+        with self.assertRaises(public_gate.VirtualSuiteCaptureError) as raised:
+            public_gate.capture_virtual_suite(text)
+        capture = raised.exception.capture
+        self.assertEqual(capture["summaryCount"], 5)
+        self.assertFalse(capture["captureComplete"])
+        self.assertFalse(capture["formalGreen"])
+
+    def test_virtual_truncated_summary_rejected_and_children_retained(self):
+        text = virtual_result().rsplit(" skipped.", 1)[0]
+        with self.assertRaises(public_gate.VirtualSuiteCaptureError) as raised:
+            public_gate.capture_virtual_suite(text)
+        self.assertEqual(raised.exception.capture["summaryCount"], 4)
+        self.assertEqual(len(raised.exception.capture["malformedSummaryRecords"]), 1)
+        self.assertEqual(raised.exception.capture["unexpectedTodoSuccesses"], 1)
+
+    def test_virtual_failure_after_summary_is_not_complete_capture(self):
+        with self.assertRaises(public_gate.VirtualSuiteCaptureError):
+            public_gate.capture_virtual_suite(virtual_result() + "virtual.c:88: Test failed: Late/truncated run\n")
+
+    def test_virtual_empty_capture_is_not_green(self):
+        with self.assertRaises(public_gate.VirtualSuiteCaptureError) as raised:
+            public_gate.capture_virtual_suite("")
+        self.assertEqual(raised.exception.capture["summaries"], [])
+        self.assertFalse(raised.exception.capture["formalGreen"])
+
+    def test_virtual_capture_is_not_strict_suite_acceptance(self):
+        text = "00e8:virtual: 50 tests executed (0 marked as todo, 0 as flaky, 0 failures), 0 skipped.\n"
+        capture = public_gate.capture_virtual_suite(text)
+        self.assertTrue(capture["captureComplete"])
+        self.assertFalse(capture["formalGreen"])
+        self.assertFalse(capture["regressionDetected"])
+
+    def test_virtual_flaky_and_skipped_preserved_as_regression(self):
+        text = virtual_result().replace("100 marked as todo, 0 as flaky", "100 marked as todo, 1 as flaky").replace(
+            "1 failure), 0 skipped", "1 failure), 2 skipped")
+        capture = public_gate.capture_virtual_suite(text)
+        self.assertEqual(capture["flaky"], 1)
+        self.assertEqual(capture["skipped"], 2)
+        self.assertTrue(capture["regressionDetected"])
+
+    def test_harness_persists_successful_capture_record_without_wine(self):
+        spec = importlib.util.spec_from_file_location("regression_harness_test", Path(__file__).parents[1] / "scripts/regression.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        harness = module.Harness.__new__(module.Harness)
+        with tempfile.TemporaryDirectory(prefix="runtime-record-test-") as directory:
+            destination = Path(directory)
+            def fake_run(*args):
+                record = {"label": "virtual", "apiGate": public_gate.capture_virtual_suite(virtual_result())}
+                harness._active_test_directory = destination
+                harness._active_test_record = record
+                return record
+            harness._run = fake_run
+            record = harness.run("virtual", "i386", "unused.exe", capture_virtual=True)
+            saved = json.loads((destination / "test-record.json").read_text())
+            self.assertEqual(saved, record)
+            self.assertEqual(saved["status"], "CAPTURED_NOT_FORMALLY_GREEN")
+            self.assertFalse(saved["apiGate"]["formalGreen"])
+
+    def test_harness_persists_partial_before_validation_error_without_wine(self):
+        spec = importlib.util.spec_from_file_location("regression_harness_test", Path(__file__).parents[1] / "scripts/regression.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        harness = module.Harness.__new__(module.Harness)
+        with tempfile.TemporaryDirectory(prefix="runtime-record-test-") as directory:
+            destination = Path(directory)
+            def fake_run(*args):
+                harness._active_test_directory = destination
+                harness._active_test_record = {"label": "virtual", "apiGate": None}
+                public_gate.capture_virtual_suite(virtual_result() + "partial diagnostic\n")
+            harness._run = fake_run
+            with self.assertRaises(public_gate.VirtualSuiteCaptureError):
+                harness.run("virtual", "i386", "unused.exe", capture_virtual=True)
+            saved = json.loads((destination / "test-record.json").read_text())
+            evaluation = json.loads((destination / "suite-evaluation.json").read_text())
+            self.assertEqual(saved["status"], "FAILED")
+            self.assertEqual(saved["apiGate"], evaluation)
+            self.assertEqual(evaluation["summaryCount"], 5)
+            self.assertFalse(evaluation["formalGreen"])
 
 
 if __name__ == "__main__":

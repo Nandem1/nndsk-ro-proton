@@ -4,7 +4,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
@@ -87,10 +86,37 @@ class Harness:
 
     def run(self, label, arch, executable, args=(), kind=None, result_name=None, suite=False,
             capture_virtual=False):
+        self._active_test_record = None
+        self._active_test_directory = None
+        try:
+            record = self._run(label, arch, executable, args, kind, result_name, suite, capture_virtual)
+        except BaseException as error:
+            if self._active_test_record is not None:
+                record = self._active_test_record
+                record['status'] = 'FAILED'
+                record['validationError'] = {'type': type(error).__name__, 'message': str(error)}
+                partial = getattr(error, 'capture', None)
+                if partial is not None:
+                    record['apiGate'] = partial
+                    evaluation = self._active_test_directory / 'suite-evaluation.json'
+                    if not evaluation.exists():
+                        runtime.save(evaluation, partial)
+                runtime.save(self._active_test_directory / 'test-record.json', record)
+            raise
+        record['status'] = ('CAPTURED_NOT_FORMALLY_GREEN' if capture_virtual else 'PASS')
+        runtime.save(self._active_test_directory / 'test-record.json', record)
+        return record
+
+    def _run(self, label, arch, executable, args=(), kind=None, result_name=None, suite=False,
+             capture_virtual=False):
         await_idle(self.prefix)
         self.counter += 1
         out = self.output / f'{self.counter:02d}-{label}'
         out.mkdir(mode=0o700)
+        record = {'label': label, 'arch': arch, 'controllerExitStatus': None,
+                  'apiGate': None, 'wineservers': []}
+        self._active_test_record = record
+        self._active_test_directory = out
         for fixture in ('cow-fixture.dll', 'iat-fixture.dll'):
             origin = self.bins / arch / fixture
             if origin.is_file():
@@ -129,6 +155,7 @@ class Harness:
                 runtime.save(out / 'controller.json', identity)
                 try:
                     code = p.wait(timeout=180 if suite else 55)
+                    record['controllerExitStatus'] = code
                 except subprocess.TimeoutExpired:
                     # Preserve live test processes for diagnosis; never signal a
                     # global wineserver or another prefix merely to get green.
@@ -138,24 +165,18 @@ class Harness:
             stop.set()
             watcher.join()
             runtime.save(out / 'process-identities.json', list(seen.values()))
+            record['wineservers'] = [v for v in seen.values() if v['comm'] == 'wineserver']
         await_idle(self.prefix)
         result_path = out / result_name
         if not result_path.is_file():
             raise RuntimeError('Test did not produce expected result: ' + str(result_path))
         text = result_path.read_text(errors='replace')
+        record['resultSha256'] = runtime.sha(result_path)
         if capture_virtual:
-            summaries = re.findall(r'([0-9a-f]+):virtual: (\d+) tests executed \((\d+) marked as todo, (\d+) as flaky, (\d+) failures?\), (\d+) skipped\.', text)
-            if len(summaries) != 1:
-                raise RuntimeError('Missing/ambiguous virtual suite summary')
-            _, checks, todos, flaky, failures, skipped = summaries[0]
-            unexpected = text.count('Test succeeded inside todo block:')
-            normal = text.count('Test failed:')
-            result = {'suite': 'virtual', 'tests': int(checks), 'expectedTodos': int(todos),
-                      'reportedFailures': int(failures), 'unexpectedTodoSuccesses': unexpected,
-                      'normalFailures': normal, 'skipped': int(skipped),
-                      'formalGreen': int(failures) == 0, 'mode': 'explicit non-green suite capture'}
+            result = result_validation.capture_virtual_suite(text)
+            record['apiGate'] = result
             runtime.save(out / 'suite-evaluation.json', result)
-            if normal or int(flaky) or int(skipped) or int(failures) != unexpected:
+            if result['regressionDetected']:
                 raise RuntimeError('New/unclassified Wine regression; STOP')
         else:
             result = (result_validation.validate_wine_suite(text) if suite else
@@ -163,8 +184,7 @@ class Harness:
         if kind == 'cng-race':
             result = result_validation.validate_race_workers(text,
                         [(out / ('race-worker' + str(n) + '.txt')).read_text() for n in (1, 2)])
-        record = {'label': label, 'arch': arch, 'controllerExitStatus': code,
-                  'apiGate': result, 'wineservers': [v for v in seen.values() if v['comm'] == 'wineserver']}
+        record['apiGate'] = result
         if code:
             raise RuntimeError('Nonzero controller status, even if output appears valid')
         self.results.append(record)

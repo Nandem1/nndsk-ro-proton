@@ -14,9 +14,11 @@ alone is not a capability test.
 Static review found possible nontransactional cleanup on registration/arming
 failure after server mapping publication, and debugger-list cleanup after PE
 mapping registration failure. Neither failure was injected in the successful
-experiment. Reset/discard may need additional validation. PE64 functional
-coverage, unsupported-feature behavior, fault injection and performance remain
-release gates. Do not silently repair these while freezing the tested version.
+experiment. Reset/discard may need additional validation. The fresh build passes
+basic PE64 COW/IAT probes and runs kernel32:virtual; broader native PE64
+differential coverage, unsupported-feature behavior, fault injection and
+performance remain release gates. Do not silently repair these while freezing
+the tested version.
 
 ## Software KSP
 
@@ -34,6 +36,9 @@ Crash/power-loss durability and full Windows differential testing remain open.
   audit; a private experimental package is not release authorization.
 - The tested Unix ntdll has local GCC exception handling (`--without-unwind`).
   Preserve this instead of substituting a different unwind configuration.
+- Both rebuilt Unix ntdll modules require GLIBC_2.38 symbols, as do the frozen
+  candidate and pinned binary base. Successful managed UMU/steamrt4 execution on
+  this host is not a portability result for every distribution/container.
 - HoneyRO's old-candidate success is not a new-build smoke/stability result.
 - SakuraRO's hash-specific Wine 7.16 old-WoW64 anchor must remain available until
   an explicit controlled comparison is completed. No single-runner claim yet.

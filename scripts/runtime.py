@@ -390,6 +390,8 @@ def package(args):
     print(json.dumps(identity['artifact'], indent=2), flush=True)
 
 def main():
+    # Directory and extracted-file modes must not depend on the caller's umask.
+    os.umask(0o022)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('phase', choices=['prepare', 'build', 'build-tests', 'seal-build', 'stage', 'package'])
     p.add_argument('--wine-cache')

@@ -21,7 +21,10 @@ The PE64 variants are **separate new derivatives**, not a target flip of PE32:
   PE32+ data-directory offset112, bounded name RVAs and pointer comparisons64.
   It still maps and loads only the inert own DLL; no entry point/TLS runs.
 - Fixtures reuse our exact inert fixture C sources compiled for the proper
-  architecture. PE32 binaries/fixtures retain their historical hashes.
+  architecture. PE32 source custody is byte-exact. Import-library selection
+  changes binary hashes: only the diagnostic build using the historical import
+  libraries reproduced the originally Windows-attested binaries. Fresh-project
+  import libraries are identified separately, not falsely attested on Windows.
 
 PE64 probes are compiled here, not yet claimed Windows-conformant from a new
 native execution. CPU/I/O/guard/writewatch boundary coverage is the preserved
@@ -116,6 +119,7 @@ require their complete result/probe_exit and actual API/content assertions.
 ```python
 validate_probe(kind, text)  # dict or ValueError, never relies on Python assert
 validate_wine_suite(text)
+capture_virtual_suite(text)  # preserves every parent/child summary and all reds
 validate_race_workers(parent_text, [worker1_text, worker2_text])
 ```
 

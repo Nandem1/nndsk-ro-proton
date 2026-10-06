@@ -56,3 +56,74 @@ def validate_wine_suite(text):
     names = re.findall(r"(?:^|\n)[0-9a-fA-F]+:(\w+): \d+ tests executed", text)
     gate.require(len(names) == 1, "Missing/duplicate Wine suite summary")
     return gate.wine_suite(text, names[0])
+
+
+class VirtualSuiteCaptureError(ValueError):
+    """Malformed/incomplete evidence with the successfully decoded partial rows."""
+
+    def __init__(self, message, capture):
+        super().__init__(message)
+        self.capture = capture
+
+
+def capture_virtual_suite(text):
+    """Preserve parent/child summaries and reds, never certify a green suite.
+
+    Wine's virtual tests launch their own test children; each emits its Windows
+    PID summary. Unprefixed assertion records cannot honestly be assigned to a
+    PID, so those records remain global rather than guessed onto the parent.
+    """
+    pattern = re.compile(r"([0-9a-fA-F]+):virtual: (\d+) tests executed "
+                         r"\((\d+) marked as todo, (\d+) as flaky, (\d+) failures?\), (\d+) skipped\.")
+    summaries, malformed, errors, seen = [], [], [], set()
+    normal, unexpected, expected_todo = [], [], []
+    for index, line in enumerate(text.splitlines(), 1):
+        if ":virtual:" in line and "tests executed" in line:
+            match = pattern.fullmatch(line)
+            if not match:
+                malformed.append({"outputLine": index, "raw": line})
+                continue
+            pid, tests, todo, flaky, failures, skipped = match.groups()
+            row = {"winePidHex": pid, "winePid": int(pid, 16), "tests": int(tests),
+                   "expectedTodos": int(todo), "flaky": int(flaky), "reportedFailures": int(failures),
+                   "skipped": int(skipped), "outputLine": index, "raw": line}
+            summaries.append(row)
+            if not row["winePid"] or not row["tests"]:
+                errors.append("Invalid zero PID/test-count summary")
+            if row["winePid"] in seen:
+                errors.append("Duplicate/ambiguous Windows PID summary")
+            seen.add(row["winePid"])
+        for marker, target in (("Test failed:", normal),
+                               ("Test succeeded inside todo block:", unexpected),
+                               ("Test marked todo:", expected_todo)):
+            if marker not in line:
+                continue
+            location = re.search(r"([^\s:]+):(\d+): " + re.escape(marker), line)
+            target.append({"outputLine": index, "file": location[1] if location else None,
+                           "sourceLine": int(location[2]) if location else None,
+                           "winePid": None, "raw": line})
+    if malformed:
+        errors.append("Malformed/truncated virtual summary")
+    if not summaries:
+        errors.append("Missing virtual suite summaries")
+    elif text.rstrip().splitlines()[-1] != summaries[-1]["raw"]:
+        errors.append("No terminal virtual summary; output may be truncated")
+    result = {"suite": "virtual", "mode": "explicit non-green suite capture",
+              "formalGreen": False, "summaries": summaries, "summaryCount": len(summaries),
+              "tests": sum(row["tests"] for row in summaries),
+              "expectedTodos": sum(row["expectedTodos"] for row in summaries),
+              "reportedFailures": sum(row["reportedFailures"] for row in summaries),
+              "flaky": sum(row["flaky"] for row in summaries),
+              "skipped": sum(row["skipped"] for row in summaries),
+              "normalFailures": len(normal), "normalFailureRecords": normal,
+              "unexpectedTodoSuccesses": len(unexpected), "unexpectedTodoRecords": unexpected,
+              "expectedTodoRecords": expected_todo,
+              "unattributedAssertionRecords": True,
+              "malformedSummaryRecords": malformed, "captureComplete": not errors,
+              "captureErrors": errors}
+    result["failureAccountingMatches"] = result["reportedFailures"] == len(normal) + len(unexpected)
+    result["regressionDetected"] = bool(normal or result["flaky"] or result["skipped"]
+                                         or not result["failureAccountingMatches"])
+    if errors:
+        raise VirtualSuiteCaptureError("; ".join(errors), result)
+    return result
