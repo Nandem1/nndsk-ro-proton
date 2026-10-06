@@ -1,0 +1,237 @@
+--- a/dlls/ntdll/unix/virtual.c
++++ b/dlls/ntdll/unix/virtual.c
+@@ -104,6 +104,7 @@
+ WINE_DECLARE_DEBUG_CHANNEL(module);
+ WINE_DECLARE_DEBUG_CHANNEL(virtual_ranges);
+ WINE_DECLARE_DEBUG_CHANNEL(virtstat);
++WINE_DECLARE_DEBUG_CHANNEL(virtual_cow);
+ 
+ /* Gdb integration, in loader/main.c */
+ static struct r_debug *wine_r_debug;
+@@ -270,6 +271,7 @@
+ #define VPROT_PLACEHOLDER      0x0400
+ #define VPROT_FREE_PLACEHOLDER 0x0800
+ #define VPROT_NATIVE           0x1000
++#define VPROT_COW_TRACKED      0x2000  /* private view registered for asynchronous first-write tracking */
+ 
+ /* Conversion from VPROT_* to Win32 flags */
+ static const BYTE VIRTUAL_Win32Flags[16] =
+@@ -1384,6 +1386,82 @@
+ #endif
+ }
+ 
++/* Observe the kernel's first-write state without removing Linux write access.
++ * This also covers writes made by read/recvmsg and by wineserver.  Unlike
++ * MEM_WRITE_WATCH, private-copy history is cumulative and must never reset. */
++static NTSTATUS sync_cow_pages( struct file_view *view )
++{
++#ifdef USE_UFFD_WRITEWATCH
++    struct page_region regions[64];
++    struct pm_scan_arg arg = { 0 };
++    char *addr;
++    size_t i;
++    int count;
++
++    if (!(view->protect & VPROT_COW_TRACKED)) return STATUS_SUCCESS;
++    arg.size = sizeof(arg);
++    arg.start = (UINT_PTR)view->base;
++    arg.end = arg.start + view->size;
++    arg.vec = (UINT_PTR)regions;
++    arg.vec_len = ARRAY_SIZE(regions);
++    arg.category_mask = PAGE_IS_WPALLOWED | PAGE_IS_WRITTEN;
++    arg.return_mask = PAGE_IS_WRITTEN;
++    while (arg.start < arg.end)
++    {
++        if ((count = ioctl( pagemap_fd, PAGEMAP_SCAN, &arg )) < 0)
++        {
++            ERR_(virtual_cow)( "PAGEMAP_SCAN failed: %s.\n", strerror(errno) );
++            return STATUS_UNSUCCESSFUL;
++        }
++        for (i = 0; i < count; ++i)
++            for (addr = (char *)(UINT_PTR)regions[i].start;
++                 addr < (char *)(UINT_PTR)regions[i].end; addr += page_size)
++            {
++                if (!(get_page_vprot( addr ) & VPROT_COPIED))
++                    TRACE_(virtual_cow)( "private page %p view %p offset %lx.\n",
++                                        addr, view->base, addr - (char *)view->base );
++                set_page_vprot_bits( addr, page_size, VPROT_COPIED, 0 );
++            }
++        if (arg.walk_end >= arg.end) break;
++        if (arg.walk_end <= arg.start) return STATUS_UNSUCCESSFUL;
++        arg.start = arg.walk_end;
++    }
++#endif
++    return STATUS_SUCCESS;
++}
++
++static NTSTATUS track_cow_range( struct file_view *view, void *base, size_t size )
++{
++#ifdef USE_UFFD_WRITEWATCH
++    struct uffdio_register reg = { 0 };
++    struct uffdio_writeprotect wp = { 0 };
++
++    if (!use_kernel_writewatch || host_page_size != page_size || !size ||
++        (view->protect & VPROT_SYSTEM)) return STATUS_SUCCESS;
++    reg.range.start = (UINT_PTR)base;
++    reg.range.len = size;
++    reg.mode = UFFDIO_REGISTER_MODE_WP;
++    madvise( base, size, MADV_NOHUGEPAGE );
++    if (ioctl( uffd_fd, UFFDIO_REGISTER, &reg ) < 0)
++    {
++        ERR_(virtual_cow)( "register %p size %lx failed: %s.\n", base, size, strerror(errno) );
++        return STATUS_NOT_SUPPORTED;
++    }
++    wp.range = reg.range;
++    wp.mode = UFFDIO_WRITEPROTECT_MODE_WP;
++    if (!(reg.ioctls & (1ull << _UFFDIO_WRITEPROTECT)) ||
++        ioctl( uffd_fd, UFFDIO_WRITEPROTECT, &wp ) < 0)
++    {
++        ERR_(virtual_cow)( "arm %p size %lx failed: %s.\n", base, size, strerror(errno) );
++        ioctl( uffd_fd, UFFDIO_UNREGISTER, &reg.range );
++        return STATUS_NOT_SUPPORTED;
++    }
++    view->protect |= VPROT_COW_TRACKED;
++    TRACE_(virtual_cow)( "armed %p size %lx view %p.\n", base, size, view->base );
++#endif
++    return STATUS_SUCCESS;
++}
++
+ 
+ /***********************************************************************
+  *           set_page_vprot_exec_write_protect
+@@ -2078,6 +2156,7 @@
+  */
+ static BOOL set_vprot( struct file_view *view, void *base, size_t size, BYTE vprot )
+ {
++    if (sync_cow_pages( view )) return FALSE;
+     if (!use_kernel_writewatch && view->protect & VPROT_WRITEWATCH)
+     {
+         /* each page may need different protections depending on write watch flag */
+@@ -2087,7 +2166,9 @@
+     {
+         if (enable_write_exceptions && is_vprot_exec_write( vprot )) vprot |= VPROT_WRITEWATCH;
+         else if (use_kernel_writewatch && view->protect & VPROT_WRITEWATCH) vprot &= ~VPROT_WRITEWATCH;
+-        set_page_vprot( base, size, vprot );
++        if (view->protect & VPROT_COW_TRACKED)
++            set_page_vprot_bits( base, size, vprot & ~VPROT_COPIED, ~vprot & ~VPROT_COPIED );
++        else set_page_vprot( base, size, vprot );
+     }
+     return !mprotect_range( base, size, 0, 0 );
+ }
+@@ -2157,6 +2238,8 @@
+  */
+ static void reset_write_watches( void *base, SIZE_T size )
+ {
++    struct file_view *view = find_view( base, size );
++    if (view && sync_cow_pages( view )) return;
+     if (use_kernel_writewatch)
+     {
+         kernel_writewatch_reset( base, size );
+@@ -3337,7 +3420,7 @@
+         set_vprot( view, ptr, total_size, VPROT_COMMITTED | VPROT_READ | VPROT_WRITECOPY | VPROT_EXEC );
+ 
+         /* no relocations are performed on non page-aligned binaries */
+-        status = STATUS_SUCCESS;
++        status = track_cow_range( view, ptr, total_size );
+         goto done;
+     }
+ 
+@@ -3502,6 +3585,31 @@
+     VALGRIND_LOAD_PDB_DEBUGINFO(fd, ptr, total_size, ptr - (char *)wine_server_get_ptr( image_info->base ));
+ #endif
+     r_debug_add_module( ptr, fd, ptr - (char *)wine_server_get_ptr( image_info->base ) );
++    /* Arm only after pread, zero filling, relocations and final protections.
++     * Shared sections must not acquire private-copy history. */
++    if ((status = track_cow_range( view, ptr, ROUND_SIZE( 0, header_size, align_mask ) ))) goto done;
++    for (i = 0; i < nt->FileHeader.NumberOfSections; ++i)
++    {
++        SIZE_T size = sec[i].Misc.VirtualSize ? sec[i].Misc.VirtualSize : sec[i].SizeOfRawData;
++        void *base = ptr + sec[i].VirtualAddress;
++
++        size = ROUND_SIZE( base, size, align_mask );
++        base = ROUND_ADDR( base, align_mask );
++        if ((sec[i].Characteristics & (IMAGE_SCN_MEM_SHARED | IMAGE_SCN_MEM_WRITE)) ==
++            (IMAGE_SCN_MEM_SHARED | IMAGE_SCN_MEM_WRITE))
++        {
++            /* map_file_into_view made the import-directory subrange private. */
++            if (imports && imports->VirtualAddress >= sec[i].VirtualAddress &&
++                imports->VirtualAddress < sec[i].VirtualAddress + size)
++            {
++                UINT_PTR start = imports->VirtualAddress & ~host_page_mask;
++                UINT_PTR end = start + ROUND_SIZE( imports->VirtualAddress, imports->Size, host_page_mask );
++                end = min( end, sec[i].VirtualAddress + size );
++                if (end > start && (status = track_cow_range( view, ptr + start, end - start ))) goto done;
++            }
++        }
++        else if ((status = track_cow_range( view, base, size ))) goto done;
++    }
+     status = STATUS_SUCCESS;
+ 
+ done:
+@@ -3833,6 +3941,7 @@
+     }
+     else ERR( "mapping %p %lx %s failed\n", view->base, size, wine_dbgstr_longlong(offset.QuadPart) );
+ 
++    if (NT_SUCCESS(res) && !(vprot & VPROT_WRITE)) res = track_cow_range( view, view->base, view->size );
+     if (NT_SUCCESS(res))
+     {
+         *addr_ptr = view->base;
+@@ -5902,6 +6011,7 @@
+ 
+     if ((view = find_view( base, size )))
+     {
++        if ((status = sync_cow_pages( view ))) goto done;
+         /* Make sure all the pages are committed */
+         if (get_committed_size( view, base, size, &vprot, VPROT_COMMITTED ) >= size && (vprot & VPROT_COMMITTED))
+         {
+@@ -5939,6 +6049,7 @@
+     }
+     else status = STATUS_INVALID_PARAMETER;
+ 
++done:
+     if (!status) VIRTUAL_DEBUG_DUMP_VIEW( view );
+ 
+     server_leave_uninterrupted_section( &virtual_mutex, &sigset );
+@@ -6072,6 +6183,13 @@
+     else
+     {
+         BYTE vprot;
++        NTSTATUS status = sync_cow_pages( view );
++
++        if (status)
++        {
++            server_leave_uninterrupted_section( &virtual_mutex, &sigset );
++            return status;
++        }
+ 
+         info->AllocationBase = alloc_base;
+         info->RegionSize = get_committed_size( view, base, ~(size_t)0, &vprot, ~VPROT_WRITEWATCH );
+@@ -6361,6 +6479,7 @@
+     struct file_view *view, *prev_view;
+     sigset_t sigset;
+     BYTE vprot;
++    NTSTATUS status = STATUS_SUCCESS;
+ 
+     if (process != NtCurrentProcess())
+     {
+@@ -6397,6 +6516,7 @@
+     r = ref;
+     while (view && (char *)view->base < end)
+     {
++        if ((status = sync_cow_pages( view ))) goto done;
+         if (start < (char *)view->base) start = view->base;
+         while (r != ref + count && r->addr < start) ++r;
+         while (start != (char *)view->base + view->size && r != ref + count
+@@ -6412,10 +6532,12 @@
+         view = RB_ENTRY_VALUE( rb_next( &view->entry ), struct file_view, entry );
+     }
+ 
++done:
+     free_fill_working_set_info_data( &data );
+     if (ref != ref_buffer) free( ref );
+     server_leave_uninterrupted_section( &virtual_mutex, &sigset );
+ 
++    if (status) return status;
+     if (res_len)
+         *res_len = len;
+     return STATUS_SUCCESS;
