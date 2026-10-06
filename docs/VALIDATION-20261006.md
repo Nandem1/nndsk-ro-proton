@@ -66,10 +66,21 @@ DOS arguments/CWD/graphics and the same unmodified session supervisor.
 Executable, hRO.dll, Gepard and BGM/666.mp3 hashes match the accepted updated
 client before launch. No manual guest or protection-file modification occurred.
 
-The user confirmed login at 2026-10-06T23:23:29Z. A new 1200-second process window
-started at that confirmation; **stability is still PENDING**. Audio/input/map
-transition require fresh user observations. Natural exit, prefix cleanup,
-post-run protected-file integrity and repeated cycles are also PENDING.
+The user confirmed login at 2026-10-06T23:23:29Z. The new-build stability window
+finished at 23:43:31Z after 1202.119 seconds: **PASS for this 20-minute session**.
+The same PID/start_time survived 120 samples, 40 threads, with zero new bounded-
+log error/dialog records in the window. At 23:45:03Z the user reported normal
+operation ("Esta todo correcto, todo fino"); this is user feedback, not automatic
+audio/input/map correctness measurement.
+
+RSS was 1219.0 -> 1238.3 MiB; the last-five-minute median was 1238.3 MiB. This
+does not establish or exclude a leak. Runner, original prefix and protected
+guest/core hashes remained unchanged at the post-window check. Evidence:
+`work/smoke-01/cycle-01/stability-summary.json` and `.md`, samples, user markers
+and the recorded window result. Game remains open with no automatic deadline
+stop. Natural exit, cleanup and repeated cycles remain PENDING. The packaged
+manifest's validation fields are its earlier packaging-time snapshot, not a
+claim that these later observations were already available when it was built.
 
 Cycle-01 has an explicit diagnostic limitation: its live CNG filter required a
 colon after the function name, while Wine emits a space. Those entry lines were
@@ -79,7 +90,7 @@ running game. Owned CNG probe results above remain independently valid.
 
 ## Remaining release gates
 
-New-build stability and multiple game cycles; native PE64/broader conformance;
+Longer-term stability and multiple game cycles; native PE64/broader conformance;
 kernel capability/error-path/performance coverage and known COW cleanup risks;
 immutable toolchain/full source-build feasibility; complete inherited-component
 source/license closure; explicit SakuraRO Wine 7.16 old-WoW64 comparison.
