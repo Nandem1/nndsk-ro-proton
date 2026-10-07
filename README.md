@@ -32,7 +32,20 @@ across hosts. Deterministic packaging is a separate property.
 
 See [build instructions](docs/BUILD.md), [risks](docs/RISKS.md),
 [launch topology](docs/LAUNCH.md), and [redistribution status](docs/LICENSING.md).
-Nothing is published remotely or integrated into launcher defaults.
+The source project is hosted at
+[Nandem1/nndsk-ro-proton](https://github.com/Nandem1/nndsk-ro-proton), a GitHub fork
+of Proton-CachyOS. The `ro-runtime` branch is the maintained preservation recipe;
+upstream branches remain available without rewriting their history.
+
+```sh
+git clone --branch ro-runtime https://github.com/Nandem1/nndsk-ro-proton.git
+```
+
+Launcher integration selects this runtime by a distinct versioned identity;
+Wine 7.16 old-WoW64 remains a per-server compatibility option. The accepted local
+archive can be imported after checksum/manifest verification. There is no public
+binary release or automatic download yet: inherited source/license closure is
+still a publication gate. See [launcher delivery](docs/LAUNCHER-INTEGRATION.md).
 
 HoneyRO compatibility/stability on the freshly built artifact is
 [accepted PASS](docs/ACCEPTANCE-20261006.md); the measured new-build session
