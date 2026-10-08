@@ -28,4 +28,8 @@ Before distribution:
    a moving branch; preserve checksums and source availability.
 5. Resolve the runtime validation/portability blockers separately.
 
-No remote repositories, tags, releases or public artifacts have been created.
+The source recipe is now hosted in the public
+[Nandem1/nndsk-ro-proton](https://github.com/Nandem1/nndsk-ro-proton) fork on
+`ro-runtime`. No runtime binary release or release tag has been published.
+See [the concrete publication review](PUBLICATION-20261007.md) for unresolved
+inherited inputs; this does not authorize flipping the publication flags.
