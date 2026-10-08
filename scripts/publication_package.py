@@ -9,6 +9,8 @@ import io
 import hashlib
 import json
 import os
+import re
+from concurrent.futures import ThreadPoolExecutor
 import shutil
 import subprocess
 import tarfile
@@ -19,9 +21,16 @@ from publication_materials import checked_receipts
 ROOT = runtime.ROOT
 VERSION = '0.1.0-dev.2'
 MATERIALS = ROOT / 'work/publication-materials-20261008-v3'
-STAGE = ROOT / 'work/publication-stage-20261008/nndsk-ro-proton'
-DIST = ROOT / 'dist/publication-0.1.0-dev.2'
+STAGE = ROOT / 'work/publication-stage-20261008-r2/nndsk-ro-proton'
+DIST = ROOT / 'dist/publication-0.1.0-dev.2-r2'
 OLD_SHA = '75b0c916ccf6e7fcd64ed2afe576c2c0bc6a75ef63a8d74ad6dd9bee629d4d9f'
+
+
+def publication_commit(raw):
+    commit = raw.strip()
+    if not re.fullmatch('[0-9a-f]{40}', commit):
+        raise ValueError('Publication recipe requires a full Git commit')
+    return commit
 
 
 def validate_preservation(before, after):
@@ -90,7 +99,7 @@ def main():
     runtime.check_inputs()
     if runtime.git_output(['status', '--porcelain'], ROOT):
         raise ValueError('Publication recipe must be committed and clean')
-    commit = runtime.git_output(['rev-parse', 'HEAD'], ROOT)
+    commit = publication_commit(runtime.git_output(['rev-parse', 'HEAD'], ROOT))
     review = json.loads((ROOT / 'provenance/publication-review.json').read_text())
     if review.get('status') != 'ACCEPTED_FOR_PRERELEASE_DISTRIBUTION':
         raise ValueError('Maintainer publication review is not accepted')
@@ -133,13 +142,17 @@ def main():
     validate_preservation(expected, after)
     DIST.mkdir()
     archive = DIST / f'nndsk-ro-proton-{VERSION}-linux-x86_64.tar.zst'
-    runtime.pack_archive(STAGE, archive)
-    runtime.verify_packaged_archive(archive, STAGE, after)
     if args.repeat_package:
         repeat = DIST / (archive.name + '.repeat')
-        runtime.pack_archive(STAGE, repeat)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            tasks = [pool.submit(runtime.pack_archive, STAGE, path) for path in (archive, repeat)]
+            for task in tasks:
+                task.result()
         if runtime.sha(archive) != runtime.sha(repeat):
             raise ValueError('Non-deterministic binary packaging')
+    else:
+        runtime.pack_archive(STAGE, archive)
+    runtime.verify_packaged_archive(archive, STAGE, after)
     sources = source_bundle(index, commit)
     identity.update(platform='linux-x86_64', artifact={'filename': archive.name,
         'sha256': runtime.sha(archive), 'size': archive.stat().st_size, 'format': 'tar.zst', 'root': STAGE.name},

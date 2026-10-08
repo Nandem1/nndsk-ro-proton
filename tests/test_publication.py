@@ -15,6 +15,11 @@ import collect_component_sources as sources
 
 
 class PublicationTests(unittest.TestCase):
+    def test_publication_identity_removes_cli_newline_but_rejects_non_commits(self):
+        self.assertEqual(package.publication_commit('a' * 40 + '\n'), 'a' * 40)
+        for raw in ('main\n', 'a' * 39, 'a' * 40 + '\nother'):
+            with self.assertRaises(ValueError):
+                package.publication_commit(raw)
     def test_packaging_may_add_notices_but_cannot_change_code_or_remove_data(self):
         original = {'files/bin/wine': {'sha256': 'accepted'},
                     'nndsk-runtime.json': {'sha256': 'old'}, 'files/model': {'sha256': 'model'}}

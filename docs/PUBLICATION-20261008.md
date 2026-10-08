@@ -89,5 +89,11 @@ accepted HoneyRO result; the new package's GUI download/install test belongs to
 the user. Wine 7.16 remains the independent Sakura fallback. This prerelease is
 not a promise of compatibility with all RO servers or kernels.
 
+The first local packaging attempt rejected an untrimmed Git CLI newline while
+creating the source recipe archive. It was never published; its outputs are
+preserved for inspection. The corrected recipe validates the full commit identity
+before staging and tests that normalization explicitly. Final artifacts use the
+separate `dist/publication-0.1.0-dev.2-r2` directory.
+
 No external release should be created if a known source/notice mismatch,
 unreviewed shipped component or runtime-byte discrepancy remains.
