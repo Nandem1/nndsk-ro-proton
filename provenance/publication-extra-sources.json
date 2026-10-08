@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sourceReferencesOnly": true,
+  "auditComplete": false,
+  "sources": [
+    {"path": "piper-phonemize", "repository": "https://github.com/shaunren/piper-phonemize", "commit": "5ecbb9b59abcffe03a9775ae82491c9ac5037f4d", "historicalBuildCommitProven": false},
+    {"path": "espeak-ng", "repository": "https://github.com/rhasspy/espeak-ng", "commit": "0f65aa301e0d6bae5e172cc74197d32a6182200f"},
+    {"path": "onnxruntime", "repository": "https://github.com/microsoft/onnxruntime", "commit": "c57cf374b67f72575546d7b4c69a1af4972e2b54"},
+    {"path": "fmt", "repository": "https://github.com/fmtlib/fmt", "commit": "a0b8a92e3d1532361c2f7feb63babc5c18d00ef2"},
+    {"path": "spdlog", "repository": "https://github.com/gabime/spdlog", "commit": "7e635fca68d014934b4af8a1cf874f63989352b7"},
+    {"path": "libmspack", "repository": "https://github.com/kyz/libmspack", "commit": "305907723a4e7ab2018e58040059ffb5e77db837"},
+    {"path": "procps-ng", "repository": "https://gitlab.com/procps-ng/procps", "commit": "54e7feb2bf672a12717f6d4ced548da6b3159596"},
+    {"path": "winetricks", "repository": "https://github.com/Winetricks/winetricks", "commit": "08304e81f9ac9a83c552a6bd78689040d174bf95"},
+    {"path": "umu-database", "repository": "https://github.com/Open-Wine-Components/umu-database", "commit": "c5ff855644b787a024d2ad1314b506639691b2a6"},
+    {"path": "zenity-rs", "repository": "https://github.com/QaidVoid/zenity-rs", "commit": "c395e32892b823f79b049f1397cd86a2ea87827b"},
+    {"path": "xalia", "repository": "https://github.com/madewokherd/xalia", "commit": "6d946216c29052c29c660ad4cac950a6bd08a2b4"},
+    {"path": "wine-mono-source", "url": "https://github.com/wine-mono/wine-mono/releases/download/wine-mono-11.2.0/wine-mono-11.2.0-src.tar.xz", "filename": "wine-mono-11.2.0-src.tar.xz", "sha256": "aebef9b43dca80b3ebe4a0ada0f45925d833f371ba5b42f5acf9990461568ba9"},
+    {"path": "wine-gecko-source", "url": "https://dl.winehq.org/wine/wine-gecko/2.47.4/wine-gecko-2.47.4-src.tar.xz", "filename": "wine-gecko-2.47.4-src.tar.xz"},
+    {"path": "unzip-source", "url": "https://deb.debian.org/debian/pool/main/u/unzip/unzip_6.0.orig.tar.gz", "filename": "unzip_6.0.orig.tar.gz"},
+    {"path": "unzip-debian-patches", "url": "https://snapshot.debian.org/file/60d291e40b4cba025591bdd84f1b00779f9c68d6", "filename": "unzip_6.0-29.snapshot.debian.tar.xz", "sha256": "14043e5ea351c02b3bc8676e1e6d20d79b9a690b6d7520e8138ac629cc048417"},
+    {"path": "onnxruntime-distribution", "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.14.1/onnxruntime-linux-x64-1.14.1.tgz", "filename": "onnxruntime-linux-x64-1.14.1.tgz"},
+    {"path": "xalia-distribution", "url": "https://github.com/madewokherd/xalia/releases/download/xalia-0.4.9/xalia-0.4.9-net48-mono.zip", "filename": "xalia-0.4.9-net48-mono.zip", "sha256": "e2c94a40f68f63660cc06405a641bc4e5a2e9b9320b9608e01a21feb6f6709c5"},
+    {"path": "wine-mono-distribution", "url": "https://github.com/wine-mono/wine-mono/releases/download/wine-mono-11.2.0/wine-mono-11.2.0-x86.tar.xz", "filename": "wine-mono-11.2.0-x86.tar.xz", "sha256": "c9fb2e2823acf30b000b8806177db0f40751786136dd3f8fb2be7897b1643d06"},
+    {"path": "SDL3-CS", "repository": "https://github.com/flibitijibibo/SDL3-CS", "commit": "e26a111c1b90301e37475a4dfb6f5ce47447d677"},
+    {"path": "SDL3", "repository": "https://github.com/libsdl-org/SDL", "commit": "a962f40bbba175e9716557a25d5d7965f134a3d3"},
+    {"path": "Superpower", "repository": "https://github.com/datalust/superpower", "commit": "69a175031a1fc609a0577b1c676f5721af84a5ac"},
+    {"path": "Tmds.DBus", "repository": "https://github.com/tmds/Tmds.DBus", "commit": "282acebca8d4e4e3ba211646ac650911ee94edfd"},
+    {"path": "dotnet-maintenance-packages", "repository": "https://github.com/dotnet/maintenance-packages", "commit": "f62ca0009b038cab4725a720f386623a969d73ad"},
+    {"path": "libtashkeel", "repository": "https://github.com/mush42/libtashkeel", "commit": "9b91c2dbc3dc4085dc4f77a9e250e5dd095d7d0c", "historicalBuildCommitProven": false},
+    {"path": "icu", "repository": "https://github.com/unicode-org/icu", "commit": "84e1f26ea77152936e70d53178a816dbfbf69989"}
+  ]
+}

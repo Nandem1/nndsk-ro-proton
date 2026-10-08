@@ -1,5 +1,10 @@
 # Distribution preparation
 
+Update: [the 2026-10-08 review](PUBLICATION-20261008.md) adds pinned dependency
+sources/notices and prepares metadata-only `0.1.0-dev.2`. The original `dev.1`
+build/source records below remain historical and immutable. Do not infer new
+game validation or universal compatibility from distribution readiness.
+
 HoneyRO compatibility/stability is **accepted PASS** for the identified new
 artifact. Additional game tests were stopped by the user; see
 [the acceptance record](ACCEPTANCE-20261006.md). No new runtime behavior is being

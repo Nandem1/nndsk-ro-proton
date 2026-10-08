@@ -1,5 +1,10 @@
 # nndsk-ro-proton
 
+Publication preparation: `0.1.0-dev.2` preserves the accepted runtime bytes and
+adds source-access/licensing material. See
+[the distribution review](docs/PUBLICATION-20261008.md); `dev.1` records below
+describe the original preservation build, not a different patchset.
+
 Linux runtime for Ragnarok Online, derived from pinned Proton-CachyOS and Wine.
 The first milestone is an **experimental preservation build**, not a stable
 release or a universal replacement for Wine 7.16.

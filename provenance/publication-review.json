@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "status": "ACCEPTED_FOR_PRERELEASE_DISTRIBUTION",
+  "review": "docs/PUBLICATION-20261008.md",
+  "version": "0.1.0-dev.2",
+  "functionalPatchsetRevision": 1,
+  "packagingOnly": true,
+  "materialsSourceIndexSha256": "96366bba42af2a8c2456b5f1c0315675870645b0bded725621b9140306d5d3a8",
+  "materialsInventorySha256": "592b27c6335bf12b0b9a400f571fcbbddf07bcb4f79bc78fc70ba04c02193297",
+  "originalArchiveSha256": "75b0c916ccf6e7fcd64ed2afe576c2c0bc6a75ef63a8d74ad6dd9bee629d4d9f",
+  "legalClearanceClaimed": false,
+  "upstreamCompilationBitReproducibilityClaimed": false,
+  "completeSpdxSbomClaimed": false,
+  "historicalPhonemizerCommitProven": false,
+  "finalUserGuiTest": "PENDING"
+}

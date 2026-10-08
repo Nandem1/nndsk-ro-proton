@@ -1,7 +1,9 @@
-# Redistribution status: BLOCKED / audit incomplete
+# Redistribution status: prerelease review prepared
 
-This is not a legal clearance or an assertion that the entire inherited binary
-bundle has complete corresponding source. Do not publish binary artifacts yet.
+The historical blocked review below is superseded by
+[the artifact-specific 2026-10-08 review](PUBLICATION-20261008.md).
+Publication requires its preserved sources/notices and packaging gates; this
+is not legal clearance or a claim of bit-reproducible upstream compilation.
 
 Wine is LGPL-2.1-or-later; preserve license text, attribution, modifications and
 exact corresponding source/build instructions. Proton's own wrapper has its
@@ -31,5 +33,7 @@ Before distribution:
 The source recipe is now hosted in the public
 [Nandem1/nndsk-ro-proton](https://github.com/Nandem1/nndsk-ro-proton) fork on
 `ro-runtime`. No runtime binary release or release tag has been published.
-See [the concrete publication review](PUBLICATION-20261007.md) for unresolved
-inherited inputs; this does not authorize flipping the publication flags.
+See [the historical review](PUBLICATION-20261007.md) and its successor above.
+The original build lock stays historical; the separate distribution gate lives
+in `provenance/publication-review.json`. Accepted binaries are not rebuilt or
+silently replaced to close a notice gap.
