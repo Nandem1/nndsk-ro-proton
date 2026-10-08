@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-10-07",
+  "protonCommit": "3edf6fbb8af940de5c65b9dd0fbf366b51a218a8",
+  "release": "cachyos-11.0-20260702-slr",
+  "source": {
+    "repository": "CachyOS/proton-cachyos",
+    "runId": 29189309884,
+    "jobId": 86641087355,
+    "url": "https://github.com/CachyOS/proton-cachyos/actions/runs/29189309884/job/86641087355",
+    "headSha": "3edf6fbb8af940de5c65b9dd0fbf366b51a218a8",
+    "target": "proton-cachyos-11.0-20260702-slr-x86_64",
+    "result": "success",
+    "startedAt": "2026-07-12T10:33:23Z",
+    "completedAt": "2026-07-12T13:16:52Z",
+    "reproduce": "gh api --allow-escape-sequences repos/CachyOS/proton-cachyos/actions/jobs/86641087355/logs"
+  },
+  "sdk": {
+    "tag": "registry.gitlab.steamos.cloud/proton/steamrt4/sdk/x86_64:4.0.20260331.220802-0",
+    "pulledDigest": "sha256:97526b794ce1a9bed5f891084462260b3a02399569f7438a3a57b5a253001db9",
+    "observedAt": "2026-07-12T10:43:45.4913157Z",
+    "status": "historical image digest observed; SDK source/license closure not completed"
+  },
+  "compilerCache": {
+    "restoreResult": "Cache not found",
+    "ccacheDisabledInBuildCommand": true,
+    "status": "observed build invocation, not a complete attestation of all inputs"
+  },
+  "piper": {
+    "gitlink": "9d06b74959570772e8bcbe7a3f696664d2421167",
+    "gitlinkCheckoutObservedAt": "2026-07-12T10:41:05.7119932Z",
+    "phonemizer": {
+      "downloadUrl": "https://github.com/shaunren/piper-phonemize/archive/refs/heads/pic.zip",
+      "downloadObservedAt": "2026-07-12T10:49:39.3380475Z",
+      "downloadCompletedAt": "2026-07-12T10:49:40.7222724Z",
+      "externalPatchStep": "No patch step",
+      "historicalArchiveSha256": null,
+      "historicalSourceCommit": null,
+      "status": "historical mutable URL observed; exact downloaded archive/tree not recovered"
+    },
+    "espeak": {
+      "downloadUrl": "https://github.com/rhasspy/espeak-ng/archive/0f65aa301e0d6bae5e172cc74197d32a6182200f.zip",
+      "sourceCommit": "0f65aa301e0d6bae5e172cc74197d32a6182200f",
+      "downloadObservedAt": "2026-07-12T10:49:41.8483237Z",
+      "downloadCompletedAt": "2026-07-12T10:49:44.0947156Z",
+      "status": "historical commit-addressed URL observed; source/notices not yet bundled"
+    },
+    "onnxRuntime": {
+      "downloadUrl": "https://github.com/microsoft/onnxruntime/releases/download/v1.14.1/onnxruntime-linux-x64-1.14.1.tgz",
+      "downloadObservedAt": "2026-07-12T10:49:41.2331737Z",
+      "status": "historical binary download URL observed; checksum and associated notices not yet reconciled"
+    },
+    "fmt": {
+      "downloadUrl": "https://github.com/fmtlib/fmt/archive/refs/tags/10.0.0.zip",
+      "downloadObservedAt": "2026-07-12T10:49:47.5352622Z"
+    },
+    "spdlog": {
+      "downloadUrl": "https://github.com/gabime/spdlog/archive/refs/tags/v1.12.0.zip",
+      "downloadObservedAt": "2026-07-12T10:50:02.9189116Z"
+    },
+    "model": {
+      "name": "libtashkeel_model.ort",
+      "installedAt": "2026-07-12T10:50:38.9975720Z",
+      "copiedToRuntimeAt": "2026-07-12T11:08:02.5508563Z",
+      "status": "historical install/copy observed; source and notice reconciliation incomplete"
+    }
+  },
+  "notice": "These are filtered historical build-log observations, not a complete SBOM, reproducibility proof or legal clearance. No runtime input or publication gate is changed."
+}

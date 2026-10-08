@@ -49,8 +49,10 @@ generic homepage does not resolve the inventory.
    shipped version records and build rules. Include upstream build-time patches
    and nested/downloaded inputs; do not substitute a current branch tip.
 2. Resolve the historical Piper/eSpeak/phonemizer/model inputs and SDK-supplied
-   library provenance. The SDK tag is recorded, but its immutable digest and
-   all transitive inputs are not yet locked.
+   library provenance. The SDK's historical immutable digest has now been
+   recovered from the exact upstream build logs; associated source/notices
+   and all transitive inputs are not yet reconciled. See
+   [the publication review](PUBLICATION-20261007.md).
 3. Complete a per-file/component source/license map and review the proposed
    source-access mechanism. Keep publication flags false until this closes.
 4. Prepare release URLs and launcher runtime registration only after explicit

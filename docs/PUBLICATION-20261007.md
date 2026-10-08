@@ -79,3 +79,31 @@ runtime remains usable through the accepted local importer.
 The next highest-information source test is to recover the original build's
 phonemizer archive/cache or input record and compare it to the historical candidate
 tree. No external issue/message was submitted on the user's behalf.
+
+## Historical build logs recovered
+
+The exact upstream release run is still readable:
+[run 29189309884, x86_64 job 86641087355](https://github.com/CachyOS/proton-cachyos/actions/runs/29189309884/job/86641087355).
+Its `head_sha` is the pinned Proton commit. Job start/end were
+2026-07-12 10:33:23Z / 13:16:52Z; conclusion `success`.
+Small machine-readable observations, timestamps and the read-only reproduction
+command are in [upstream-build-observations.json](../provenance/upstream-build-observations.json).
+
+This closes two uncertainties at the input-reference level:
+
+- The SDK was pulled with immutable digest
+  `sha256:97526b794ce1a9bed5f891084462260b3a02399569f7438a3a57b5a253001db9`.
+  SDK-associated source/notices are still not bundled or reconciled.
+- The actual build downloaded eSpeak from commit
+  `0f65aa301e0d6bae5e172cc74197d32a6182200f`, matching the candidate CMake rule.
+
+The log also observes Piper's pinned gitlink checkout, a cache miss and
+`CCACHE_DISABLE=1`, the fresh `pic.zip` download, no phonemizer patch step,
+ONNX Runtime 1.14.1 download, fmt 10.0.0, spdlog 1.12.0, and model installation.
+It does not reveal a historical phonemizer archive checksum or source commit.
+Therefore the current branch tip is still not promoted to a proven historical
+identity. These logs narrow the audit; they do not complete it or modify the
+accepted package. Uncertainty about this MIT dependency's historical commit
+alone is not asserted to prohibit distribution; complete applicable notices,
+corresponding-source obligations and the project's source-custody requirements
+still need to be reviewed together.
