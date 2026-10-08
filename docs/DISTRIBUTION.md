@@ -1,7 +1,9 @@
 # Distribution preparation
 
 Update: [the 2026-10-08 review](PUBLICATION-20261008.md) adds pinned dependency
-sources/notices and prepares metadata-only `0.1.0-dev.2`. The original `dev.1`
+sources/notices for the published metadata-only
+[`0.1.0-dev.2` prerelease](https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.2).
+The original `dev.1`
 build/source records below remain historical and immutable. Do not infer new
 game validation or universal compatibility from distribution readiness.
 
@@ -10,7 +12,7 @@ artifact. Additional game tests were stopped by the user; see
 [the acceptance record](ACCEPTANCE-20261006.md). No new runtime behavior is being
 introduced during this step.
 
-## Already available locally
+## Historical preservation inputs
 
 - Binary: `dist/nndsk-ro-proton-0.1.0-dev.1-linux-x86_64.tar.zst`, manifest and
   checksums. Entrypoints, source/base commits, architectures and COW capability
@@ -48,7 +50,7 @@ local source-custody tasks. Publication remains blocked while inherited-source
 and notices completeness are unresolved. An earlier aggregate LICENSE or a
 generic homepage does not resolve the inventory.
 
-## Next distribution work, in order
+## Historical distribution checklist (superseded by the review above)
 
 1. Recover exact source/notices for shipped components using pinned commits,
    shipped version records and build rules. Include upstream build-time patches

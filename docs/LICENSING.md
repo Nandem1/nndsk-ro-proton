@@ -1,4 +1,4 @@
-# Redistribution status: prerelease review prepared
+# Redistribution status: reviewed prerelease published
 
 The historical blocked review below is superseded by
 [the artifact-specific 2026-10-08 review](PUBLICATION-20261008.md).
@@ -15,12 +15,15 @@ corresponding-source inventory for every included binary.
 `licenses/` preserves upstream notices rather than relicensing their code.
 All Wine patches keep source-file copyright/license headers.
 
-The exact modified-Wine/recipe snapshot and supplemental top-level Proton
-archive are available locally. The 50 pinned component references and payload
+The exact modified-Wine/recipe snapshot, pinned Proton/component trees and
+supplemental dependency sources/notices accompany the binary on the
+[dev.2 release page](https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.2).
+The 50 pinned component references and payload
 groups are recorded in `provenance/proton-components.json`; this is not a
 complete SBOM or license/source audit. See [DISTRIBUTION.md](DISTRIBUTION.md).
 
-Before distribution:
+The following historical checklist is addressed in the artifact-specific review;
+its remaining custody limitations are explicitly documented there:
 
 1. Inventory every binary/component and map it to exact source and license.
 2. Recover and make available corresponding sources, modifications, build scripts
@@ -32,7 +35,8 @@ Before distribution:
 
 The source recipe is now hosted in the public
 [Nandem1/nndsk-ro-proton](https://github.com/Nandem1/nndsk-ro-proton) fork on
-`ro-runtime`. No runtime binary release or release tag has been published.
+`ro-runtime`. The public prerelease/tag `v0.1.0-dev.2` points to the immutable
+publication recipe commit `2dbf7cf1c2c6856ecac6f65cb6742ffc61d49d2a`.
 See [the historical review](PUBLICATION-20261007.md) and its successor above.
 The original build lock stays historical; the separate distribution gate lives
 in `provenance/publication-review.json`. Accepted binaries are not rebuilt or

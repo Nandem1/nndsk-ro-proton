@@ -1,7 +1,7 @@
 # nndsk-ro-proton
 
-Publication preparation: `0.1.0-dev.2` preserves the accepted runtime bytes and
-adds source-access/licensing material. See
+Published prerelease: [`0.1.0-dev.2`](https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.2)
+preserves the accepted runtime bytes and adds source-access/licensing material. See
 [the distribution review](docs/PUBLICATION-20261008.md); `dev.1` records below
 describe the original preservation build, not a different patchset.
 
@@ -25,7 +25,8 @@ requirement, not a runtime patch.
 - Proton-CachyOS `cachyos-11.0-20260702-slr`:
   `3edf6fbb8af940de5c65b9dd0fbf366b51a218a8`.
 - Wine-CachyOS: `b5f2dc7b5906ef864f83df8fef94c9f539eaad2d`.
-- Runtime version: `0.1.0-dev.1`; patchset revision: `1`.
+- Accepted module build: `0.1.0-dev.1`; published packaging revision:
+  `0.1.0-dev.2`; patchset revision: `1`.
 - `patches/series` defines the exact behavior patch order.
 - `upstream.lock.json` pins the binary base and source revisions.
 
@@ -48,12 +49,15 @@ git clone --branch ro-runtime https://github.com/Nandem1/nndsk-ro-proton.git
 
 Launcher integration selects this runtime by a distinct versioned identity;
 Wine 7.16 old-WoW64 remains a per-server compatibility option. The accepted local
-archive can be imported after checksum/manifest verification. There is no public
-binary release or automatic download yet: inherited source/license closure is
-still a publication gate. See [launcher delivery](docs/LAUNCHER-INTEGRATION.md).
+archive can still be imported after checksum/manifest verification. The public
+dev.2 package is available through a pinned, on-demand launcher download without
+migrating existing selections or prefixes. Sources/notices, manifest, preservation
+inventory and checksums accompany the binary on the same release page. See
+[launcher delivery](docs/LAUNCHER-INTEGRATION.md).
 
 HoneyRO compatibility/stability on the freshly built artifact is
 [accepted PASS](docs/ACCEPTANCE-20261006.md); the measured new-build session
 lasted over 20 minutes. Additional game tests were stopped by the user.
-[Distribution preparation](docs/DISTRIBUTION.md) is the next milestone;
-complete inherited-component source/license closure remains outstanding.
+[The publication record](docs/RELEASE-0.1.0-dev.2.md) separates the accepted runtime
+behavior from deterministic packaging and distribution review. The final public
+package's GUI download/game test is assigned to the user, not claimed complete.
