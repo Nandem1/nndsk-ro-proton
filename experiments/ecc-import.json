@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.0-dev.3-ecc-import.2",
+  "publicationReady": false,
+  "upstreamLockSha256": "7015eb10455156333b076a794ca064b7843c714cdb7d54c9c309a3b6e0326e8c",
+  "patch": {
+    "path": "patches/experimental/0004-ncrypt-ephemeral-p256-import.patch",
+    "sha256": "7b1f270ff0a6ba0e0aff3d148e5aa583a322b6093d9d0ecff6ac9e01a88253c4"
+  },
+  "sourcePaths": ["dlls/ncrypt/main.c", "dlls/ncrypt/ncrypt_internal.h", "include/ncrypt.h", "include/bcrypt.h"],
+  "overlayModules": ["files/lib/wine/i386-windows/ncrypt.dll", "files/lib/wine/x86_64-windows/ncrypt.dll"]
+}

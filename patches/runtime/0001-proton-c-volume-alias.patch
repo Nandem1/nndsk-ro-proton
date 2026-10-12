@@ -1,0 +1,16 @@
+--- a/proton
++++ b/proton
+@@ -2344,6 +2344,13 @@
+         return subprocess.call(args, env=local_env, stderr=self.log_file, stdout=self.log_file)
+ 
+     def run(self):
++        # Wine reports a canonical GUID for C without a Unix namespace alias.
++        # Query its actual GUID; never guess it or rewrite an existing mapping.
++        import runpy
++        volume_hook = runpy.run_path(g_proton.path("nndsk_volume_aliases.py"))
++        volume_hook["ensure_c_volume_alias"](
++            self.env, g_proton.wine_bin,
++            g_proton.path("files/share/nndsk/c-volume-query.exe"), self.log_file)
+         if shutil.which('steam-runtime-launcher-interface-0') is not None:
+             adverb = ['steam-runtime-launcher-interface-0', 'proton']
+         else:

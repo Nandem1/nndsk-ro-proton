@@ -1,0 +1,217 @@
+diff --git a/dlls/ncrypt/main.c b/dlls/ncrypt/main.c
+--- a/dlls/ncrypt/main.c
++++ b/dlls/ncrypt/main.c
+@@ -529,21 +529,87 @@
+     return ERROR_SUCCESS;
+ }
+ 
++/* Named public P-256 imports are ephemeral. Other curves, private blobs and
++ * parameter types remain unsupported; never ignore an import descriptor. */
++static SECURITY_STATUS import_p256_public(NCRYPT_PROV_HANDLE provider, const WCHAR *type,
++                                          NCryptBufferDesc *params, NCRYPT_KEY_HANDLE *handle,
++                                          BYTE *data, DWORD datasize)
++{
++    struct { BCRYPT_ECCKEY_BLOB header; BYTE point[64]; } blob;
++    NCRYPT_KEY_HANDLE imported;
++    struct object *object;
++    SECURITY_STATUS ret;
++    BOOL named = FALSE;
++
++    if (!((struct object *)provider)->storage_provider.software) return NTE_NOT_SUPPORTED;
++    if (lstrcmpW(type, BCRYPT_ECCPUBLIC_BLOB)) return NTE_NOT_SUPPORTED;
++    if (datasize != sizeof(blob)) return NTE_INVALID_PARAMETER;
++    memcpy(&blob, data, sizeof(blob));
++    if (blob.header.cbKey != 32) return NTE_INVALID_PARAMETER;
++    if (params)
++    {
++        NCryptBuffer *buffer;
++        WCHAR curve[256];
++        if (params->ulVersion != NCRYPTBUFFER_VERSION || params->cBuffers > 1)
++            return NTE_INVALID_PARAMETER;
++        if (params->cBuffers)
++        {
++            if (!(buffer = params->pBuffers)) return NTE_INVALID_PARAMETER;
++            if (buffer->BufferType != NCRYPTBUFFER_ECC_CURVE_NAME) return NTE_NOT_SUPPORTED;
++            if (!buffer->pvBuffer || buffer->cbBuffer < sizeof(WCHAR) ||
++                buffer->cbBuffer > sizeof(curve) || buffer->cbBuffer % sizeof(WCHAR))
++                return NTE_INVALID_PARAMETER;
++            memcpy(curve, buffer->pvBuffer, buffer->cbBuffer);
++            if (curve[buffer->cbBuffer / sizeof(WCHAR) - 1]) return NTE_INVALID_PARAMETER;
++            if (buffer->cbBuffer != sizeof(L"nistP256") || lstrcmpiW(curve, L"nistP256"))
++                return NTE_NOT_SUPPORTED;
++            named = TRUE;
++        }
++    }
++    if (blob.header.dwMagic == BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC && !named)
++        return NTE_INVALID_PARAMETER;
++    /* The pinned BCrypt backend supports the specific P-256 format. Normalize
++     * only our local copy after checking the caller's curve and exact shape. */
++    blob.header.dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
++    if ((ret = create_p256_key(provider, &imported, FALSE))) return ret;
++    object = (struct object *)imported;
++    ret = map_ntstatus(BCryptImportKeyPair(BCRYPT_ECDSA_P256_ALG_HANDLE, NULL, BCRYPT_ECCPUBLIC_BLOB,
++                       &object->key.bcrypt_key, (BYTE *)&blob, sizeof(blob), 0));
++    if (!ret)
++        ret = set_object_property(object, NCRYPT_ECC_CURVE_NAME_PROPERTY,
++                                  (BYTE *)L"nistP256", sizeof(L"nistP256"));
++    if (ret)
++    {
++        free_unpublished_object(object);
++        return ret;
++    }
++    object->key.public_import = object->key.material_finalized = object->key.finalized = TRUE;
++    *handle = imported;
++    return ERROR_SUCCESS;
++}
++
+ SECURITY_STATUS WINAPI NCryptImportKey(NCRYPT_PROV_HANDLE provider, NCRYPT_KEY_HANDLE decrypt_key,
+                                        const WCHAR *type, NCryptBufferDesc *params, NCRYPT_KEY_HANDLE *handle,
+                                        BYTE *data, DWORD datasize, DWORD flags)
+ {
+-    BCRYPT_KEY_BLOB *header = (BCRYPT_KEY_BLOB *)data;
++    BCRYPT_KEY_BLOB header;
+     struct object *object;
+ 
+     TRACE("(%#Ix, %#Ix, %s, %p, %p, %p, %lu, %#lx)\n", provider, decrypt_key, wine_dbgstr_w(type),
+           params, handle, data, datasize, flags);
+ 
++    if (!provider || ((struct object *)provider)->type != STORAGE_PROVIDER) return NTE_INVALID_HANDLE;
++    if (!handle || !type || !data || datasize < sizeof(header)) return NTE_INVALID_PARAMETER;
++    if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
++    memcpy(&header, data, sizeof(header));
++
+     if (decrypt_key)
+     {
+         FIXME("Key blob decryption not implemented\n");
+         return NTE_NOT_SUPPORTED;
+     }
++    if (header.Magic == BCRYPT_ECDSA_PUBLIC_P256_MAGIC || header.Magic == BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC)
++        return import_p256_public(provider, type, params, handle, data, datasize);
+     if (params)
+     {
+         FIXME("Parameter information not implemented\n");
+@@ -559,7 +625,7 @@
+         return NTE_BAD_FLAGS;
+     }
+ 
+-    switch(header->Magic)
++    switch(header.Magic)
+     {
+     case BCRYPT_RSAFULLPRIVATE_MAGIC:
+     case BCRYPT_RSAPRIVATE_MAGIC:
+@@ -568,6 +634,8 @@
+         NTSTATUS status;
+         BCRYPT_RSAKEY_BLOB *rsablob = (BCRYPT_RSAKEY_BLOB *)data;
+ 
++        if (datasize < sizeof(*rsablob)) return NTE_INVALID_PARAMETER;
++
+         if (!(object = create_key_object(RSA, provider)))
+         {
+             ERR("Error allocating memory\n");
+@@ -587,7 +655,7 @@
+         break;
+     }
+     default:
+-        FIXME("Unhandled key magic %#lx\n", header->Magic);
++        FIXME("Unhandled key magic %#lx\n", header.Magic);
+         return NTE_INVALID_PARAMETER;
+     }
+ 
+@@ -623,6 +691,7 @@
+         else
+             return NTE_NOT_SUPPORTED;
+         policy = get_object_property(object, NCRYPT_EXPORT_POLICY_PROPERTY);
++        if (is_private && object->key.public_import) return NTE_PERM;
+         if (is_private && !(*(DWORD *)policy->value & NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG)) return NTE_PERM;
+         blob_type = is_private ? BCRYPT_ECCPRIVATE_BLOB : BCRYPT_ECCPUBLIC_BLOB;
+         status = BCryptExportKey(object->key.bcrypt_key, NULL, blob_type, NULL, 0, ret_len, 0);
+@@ -759,7 +828,6 @@
+     struct object *object = (struct object *)handle;
+ 
+     TRACE("(%#Ix, %s, %p, %lu, %#lx)\n", handle, wine_dbgstr_w(name), input, insize, flags);
+-    if (flags) FIXME("flags %#lx not supported\n", flags);
+ 
+     if (!object) return NTE_INVALID_HANDLE;
+     if (object->type == KEY && object->key.algid == ECDSA)
+@@ -767,10 +835,25 @@
+         struct object_property *prop;
+         DWORD value;
+ 
+-        if (!name || !input || insize != sizeof(value)) return NTE_INVALID_PARAMETER;
++        if (!name || !input) return NTE_INVALID_PARAMETER;
++        /* .NET marks imported keys with a custom one-byte metadata property.
++         * This does not generate private material or persist the key. */
++        if (object->key.public_import && !lstrcmpW(name, L"CLR IsEphemeral"))
++        {
++            if (flags != NCRYPT_PERSIST_ONLY_FLAG) return NTE_BAD_FLAGS;
++            if (insize != 1 || *input > 1) return NTE_INVALID_PARAMETER;
++            return set_object_property(object, name, input, insize);
++        }
++        if (insize != sizeof(value)) return NTE_INVALID_PARAMETER;
++        /* .NET requests PERSIST when setting Export Policy even on an unnamed
++         * imported key. Apply the property to this ephemeral object only; there
++         * is no named storage record to update. Do not relax named-key rules. */
++        if (object->key.public_import && !lstrcmpW(name, NCRYPT_EXPORT_POLICY_PROPERTY))
++            flags &= ~NCRYPT_PERSIST_FLAG;
+         if (flags & ~NCRYPT_SILENT_FLAG) return NTE_BAD_FLAGS;
+         /* Post-finalize mutation is deliberately not implemented in this subset. */
+-        if (object->key.finalized) return NTE_NOT_SUPPORTED;
++        if (object->key.finalized && !(object->key.public_import &&
++            !lstrcmpW(name, NCRYPT_EXPORT_POLICY_PROPERTY))) return NTE_NOT_SUPPORTED;
+         memcpy(&value, input, sizeof(value));
+         if (!lstrcmpW(name, NCRYPT_LENGTH_PROPERTY))
+         {
+@@ -789,6 +872,7 @@
+         memcpy(prop->value, &value, sizeof(value));
+         return ERROR_SUCCESS;
+     }
++    if (flags) FIXME("flags %#lx not supported\n", flags);
+     return set_object_property(object, name, input, insize);
+ }
+ 
+@@ -810,6 +894,7 @@
+         if (padding || !value || !value_len || !ret_len) return NTE_INVALID_PARAMETER;
+         if (!object->key.finalized) return NTE_BAD_KEY_STATE;
+         usage = get_object_property(object, NCRYPT_KEY_USAGE_PROPERTY);
++        if (object->key.public_import) return NTE_PERM;
+         if (!(*(DWORD *)usage->value & NCRYPT_ALLOW_SIGNING_FLAG)) return NTE_PERM;
+     }
+ 
+diff --git a/dlls/ncrypt/ncrypt_internal.h b/dlls/ncrypt/ncrypt_internal.h
+--- a/dlls/ncrypt/ncrypt_internal.h
++++ b/dlls/ncrypt/ncrypt_internal.h
+@@ -34,6 +34,7 @@
+     BCRYPT_KEY_HANDLE bcrypt_key;
+     BOOL finalized;
+     BOOL material_finalized;
++    BOOL public_import;
+     WCHAR *name;
+     DWORD storage_flags;
+     BYTE generation[16];
+diff --git a/include/ncrypt.h b/include/ncrypt.h
+--- a/include/ncrypt.h
++++ b/include/ncrypt.h
+@@ -79,6 +79,12 @@
+ typedef ULONG_PTR NCRYPT_HASH_HANDLE;
+ typedef ULONG_PTR NCRYPT_SECRET_HANDLE;
+ 
++#define NCRYPTBUFFER_VERSION        0
++#define NCRYPTBUFFER_ECC_CURVE_NAME 60
++#define NCRYPT_PERSIST_ONLY_FLAG    0x40000000
++#define NCRYPT_PERSIST_FLAG         0x80000000
++#define NCRYPT_ECC_CURVE_NAME_PROPERTY L"ECCCurveName"
++
+ #define NCRYPT_KEY_STORAGE_INTERFACE        0x00010001
+ #define NCRYPT_SCHANNEL_INTERFACE           0x00010002
+ #define NCRYPT_SCHANNEL_SIGNATURE_INTERFACE 0x00010003
+diff --git a/include/bcrypt.h b/include/bcrypt.h
+--- a/include/bcrypt.h
++++ b/include/bcrypt.h
+@@ -228,6 +228,7 @@
+ 
+ #define BCRYPT_ECDSA_PUBLIC_P256_MAGIC  0x31534345
+ #define BCRYPT_ECDSA_PRIVATE_P256_MAGIC 0x32534345
++#define BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC 0x50444345
+ #define BCRYPT_ECDSA_PUBLIC_P384_MAGIC  0x33534345
+ #define BCRYPT_ECDSA_PRIVATE_P384_MAGIC 0x34534345
+ #define BCRYPT_ECDSA_PUBLIC_P521_MAGIC  0x35534345

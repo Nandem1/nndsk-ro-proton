@@ -69,7 +69,10 @@ class Harness:
         for arch in ('i386', 'x86_64'):
             shutil.copytree(self.probes / arch, self.bins / arch)
             for module in ('crypt32', 'ncrypt'):
-                shutil.copy2(ROOT / f'work/build-pe/dlls/{module}/tests/{arch}-windows/{module}_test.exe',
+                test_root = (getattr(args, 'ncrypt_tests', None) if module == 'ncrypt' else None)
+                origin = ((test_root / f'{arch}-windows/ncrypt_test.exe') if test_root else
+                          ROOT / f'work/build-pe/dlls/{module}/tests/{arch}-windows/{module}_test.exe')
+                shutil.copy2(origin,
                              self.bins / arch / (module + '_test.exe'))
         self.before = runtime.inventory(self.runner)
         identity_path = self.runner / 'nndsk-runtime.json'
@@ -206,9 +209,18 @@ def main():
     p.add_argument('--umu', type=Path, required=True)
     p.add_argument('--probes', type=Path, default=ROOT / 'work/probes/build-01')
     p.add_argument('--output', type=Path, default=ROOT / 'work/regression-01')
-    p.add_argument('--section', choices=['all', 'cow', 'crypto', 'virtual'], default='all')
+    p.add_argument('--section', choices=['all', 'cow', 'crypto', 'virtual', 'ecc-import', 'volume-space'], default='all')
+    p.add_argument('--ncrypt-tests', type=Path, help='Optional source-built ncrypt/tests directory for an experiment')
     a = p.parse_args()
     h = Harness(a)
+    if a.section == 'ecc-import':
+        for arch in ('i386', 'x86_64'):
+            h.run('ecc-import', arch, 'cng-ecc-import.exe', kind='cng-ecc-import',
+                  result_name='cng-ecc-import-result.txt')
+    if a.section == 'volume-space':
+        for arch in ('i386', 'x86_64'):
+            h.run('volume-space', arch, 'volume-space.exe', kind='volume-space',
+                  result_name='volume-space-result.txt')
     if a.section in ('all', 'cow'):
         for name in ('cow-probe', 'iat-probe', 'boundary-probe'):
             h.run(name, 'i386', name + '.exe', kind=name, result_name=name + '-result.txt')

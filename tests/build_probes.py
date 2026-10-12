@@ -20,6 +20,9 @@ COMMON = ["-ffreestanding", "-fno-builtin", "-fno-stack-protector",
 ARCHES = {"i386": ("i686-w64-windows-gnu", "x86", 0x14c, 0x10b),
           "x86_64": ("x86_64-w64-windows-gnu", "x64", 0x8664, 0x20b)}
 CNG = [
+    ("../runtime/c-volume-query.c", "c-volume-query.exe", ["kernel32"]),
+    ("volume-space-probe.c", "volume-space.exe", ["kernel32"]),
+    ("cng-ecc-import-probe.c", "cng-ecc-import.exe", ["kernel32", "ncrypt"]),
     ("cng-persist-probe-v2.c", "cng-persist-probe.exe", ["kernel32", "shell32", "ncrypt", "crypt32"]),
     ("cng-persist-probe.c", "cng-persist-original.exe", ["kernel32", "shell32", "ncrypt", "crypt32"]),
     ("cng-persist-negative-probe.c", "cng-persist-negative.exe", ["kernel32", "ncrypt", "advapi32"]),
@@ -81,7 +84,8 @@ def main():
     manifest = {"schemaVersion": 1, "kind": "owned-api-probes", "executed": False,
                 "createdUtc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "sourceCustody": custody, "tools": {}, "importLibraries": {},
-                "sourceFiles": {str(path.relative_to(ROOT)): sha(path) for path in TESTS.rglob("*.c")},
+                "sourceFiles": {str(path.relative_to(ROOT)): sha(path)
+                                for path in [*TESTS.rglob("*.c"), *ROOT.joinpath("runtime").glob("*.c")]},
                 "commands": [], "artifacts": {}, "errors": []}
     # Prevent accidental LD/AppImage contamination of the compiler invocation.
     env = {k: v for k, v in os.environ.items()

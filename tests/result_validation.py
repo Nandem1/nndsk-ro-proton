@@ -16,6 +16,31 @@ def validate_probe(kind, text):
         return gate.boundary(text)
     if kind == "cng-negative":
         return gate.negative(text)
+    if kind == "cng-ecc-import":
+        import ecc_import_assertions
+        return ecc_import_assertions.validate(text)
+    if kind == "volume-space":
+        gate.complete(text, 'VOLUME_SPACE protocol=1 own_directory_only=1')
+        expected = {'before-direct', 'during-direct', 'during-guid', 'after-direct', 'after-guid'}
+        queries = {}
+        for line in text.splitlines():
+            if not line.startswith('QUERY '):
+                continue
+            match = re.fullmatch(r'QUERY name=([a-z-]+) success=(0x[0-9a-f]{8}) '
+                                 r'error=(0x[0-9a-f]{8}) capacityNonzero=(0x[0-9a-f]{8})', line)
+            gate.require(match is not None, 'Malformed volume query')
+            name = match[1]
+            gate.require(name not in queries, 'Duplicate volume query')
+            row = gate.fields(line)
+            gate.require(row == {'success': 1, 'error': 0, 'capacityNonzero': 1},
+                         'Failed volume query: ' + name)
+            queries[name] = row
+        gate.require(set(queries) == expected, 'Missing/unexpected volume query')
+        canonical = gate.unique_line(text, 'CANONICAL path=')
+        gate.require(re.fullmatch(r'CANONICAL path=\\\\\?\\Volume\{[0-9a-fA-F-]{36}\}'
+                                  r'\\ro-runtime-volume-fixture', canonical), 'Not the GUID path returned for our own folder')
+        gate.require(text.rstrip().splitlines()[-1] == 'probe_exit=0x00000000', 'Trailing/truncated volume output')
+        return {'probe': 'volume-space', 'guidRoundTrip': True, 'queryCount': 5}
     if kind == "cng-persist":
         if "missing_key_contract=PASS" in text:
             phase = "absent"

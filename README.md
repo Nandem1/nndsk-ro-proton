@@ -20,6 +20,10 @@ No client/protection patches, no native Windows DLLs, no fabricated trust or
 security-check results. The Windows/DOS launch path is a separate integration
 requirement, not a runtime patch.
 
+A separate [ephemeral P-256 public-import experiment](docs/ECC-IMPORT-EXPERIMENT.md)
+investigates a .NET installer compatibility gap. Its fourth patch is not part of
+the published dev.2 runtime or the sealed three-patch preservation recipe.
+
 ## Source and build identity
 
 - Proton-CachyOS `cachyos-11.0-20260702-slr`:
@@ -61,3 +65,8 @@ lasted over 20 minutes. Additional game tests were stopped by the user.
 [The publication record](docs/RELEASE-0.1.0-dev.2.md) separates the accepted runtime
 behavior from deterministic packaging and distribution review. The final public
 package's GUI download/game test is assigned to the user, not claimed complete.
+
+The next prerelease is prepared as [0.1.0-dev.3](docs/RELEASE-0.1.0-dev.3.md).
+It adds public-P256 import compatibility and Wine C-volume round-tripping;
+the real HoneyRO installer completed. Its release/package identity and launcher
+catalog integration are separate from the historical dev.2 acceptance above.
