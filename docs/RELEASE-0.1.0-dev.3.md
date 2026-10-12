@@ -67,3 +67,26 @@ matching Wine snapshot, exact inherited source/notices, preservation inventory,
 manifest and SHA256SUMS. No old output, tag or release may be overwritten.
 Publication is a separate maintainer action; this document alone is not authority
 to commit, push, tag or publish.
+
+## Publication record
+
+Published with maintainer authorization on `2026-10-12T01:21:10Z` as public
+prerelease [v0.1.0-dev.3](https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.3),
+release ID `410035509`, `draft=false`, `prerelease=true`.
+The immutable tag/source/packaging commit is `5855cfe862b1bc58f8bec75c51669153934116ca`.
+Later evidence documentation does not move that tag.
+
+- Binary: `399666743` bytes, SHA-256 `441d2d237649a7a84f7074e94173ded91ee3a593f29156531b6427e3dd631a14`.
+- Sources: `1474411617` bytes, SHA-256 `c8bfb96fb8777e25836297672b0dead8131ff2d6478a5190140c952da3953a24`.
+- Two independently packed binaries matched; the complete binary and nested/outer
+  source inventories were read back and verified. All six GitHub asset sizes and
+  digests matched the local package before publication.
+- RO-Launcher's native development build accepted/reimported both dev.2 and dev.3,
+  and installed dev.3 without modifying settings, server overrides or installation
+  records. Its catalog changes remain local; no launcher release was made.
+- An unauthenticated download from the exact public versioned HTTPS URL matched
+  the pinned size/hash and passed native launcher CLI reimport. No GUI on-demand
+  download/game session or installed launcher AppImage upgrade is claimed.
+
+Exact remote asset identities and acceptance limits are recorded in
+[`provenance/publication-dev3.json`](../provenance/publication-dev3.json).

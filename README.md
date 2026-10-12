@@ -66,7 +66,8 @@ lasted over 20 minutes. Additional game tests were stopped by the user.
 behavior from deterministic packaging and distribution review. The final public
 package's GUI download/game test is assigned to the user, not claimed complete.
 
-The next prerelease is prepared as [0.1.0-dev.3](docs/RELEASE-0.1.0-dev.3.md).
+The published experimental prerelease is [0.1.0-dev.3](https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.3),
+with [release evidence](docs/RELEASE-0.1.0-dev.3.md).
 It adds public-P256 import compatibility and Wine C-volume round-tripping;
 the real HoneyRO installer completed. Its release/package identity and launcher
 catalog integration are separate from the historical dev.2 acceptance above.

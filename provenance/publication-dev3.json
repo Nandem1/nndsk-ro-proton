@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "release": "https://github.com/Nandem1/nndsk-ro-proton/releases/tag/v0.1.0-dev.3",
+  "releaseId": 410035509,
+  "publishedAt": "2026-10-12T01:21:10Z",
+  "draft": false,
+  "prerelease": true,
+  "tag": "v0.1.0-dev.3",
+  "tagAndSourceCommit": "5855cfe862b1bc58f8bec75c51669153934116ca",
+  "assets": [
+    {
+      "filename": "manifest.json",
+      "size": 4289,
+      "sha256": "c3f98307dfa6869df6839bdcdafc1638f882fca44f6a81dfa7e460c8092f0536"
+    },
+    {
+      "filename": "nndsk-ro-proton-0.1.0-dev.3-linux-x86_64.tar.zst",
+      "size": 399666743,
+      "sha256": "441d2d237649a7a84f7074e94173ded91ee3a593f29156531b6427e3dd631a14"
+    },
+    {
+      "filename": "nndsk-ro-proton-0.1.0-dev.3-sources.tar.zst",
+      "size": 1474411617,
+      "sha256": "c8bfb96fb8777e25836297672b0dead8131ff2d6478a5190140c952da3953a24"
+    },
+    {
+      "filename": "preservation.json",
+      "size": 1951,
+      "sha256": "54ec68cfd046dc8707464ebdd2b63eb3ff85869a01820514bbc2904dd82f7163"
+    },
+    {
+      "filename": "SHA256SUMS",
+      "size": 473,
+      "sha256": "03608f6cebe02d5518aee4af65fd7fa37058abd618b2d83064cd6dcd446e0944"
+    },
+    {
+      "filename": "source-index.json",
+      "size": 1619,
+      "sha256": "49d0d22bf122fbe9cda2e9a7c9703e341fbc20852f4c8c12b8ad9044ab36efb5"
+    }
+  ],
+  "sourceBundleLayout": {
+    "inherited-dev2-sources.tar.zst": "The checksum-identified published dev.2 source archive, retaining inherited source/notice custody; source-index filename identifies its original public asset name.",
+    "current-wine-and-recipe.tar.zst": "Full current modified Wine and exact committed recipe, independently read-back verified.",
+    "source-index.json": "Commit and checksum identities for the nested source material."
+  },
+  "validation": {
+    "offlineTests": {
+      "total": 92,
+      "passed": 91,
+      "skipped": 1
+    },
+    "packagingDeterministic": true,
+    "changedNcryptArchitectures": [
+      "PE32",
+      "PE64"
+    ],
+    "invalidSignatureControls": "PASS",
+    "automaticVolumeRoundTrip": "PASS (PE32/PE64)",
+    "inheritedCryptoLifecycleCorruptionRaces": "PASS",
+    "installer": "Completed by the user on the refined ncrypt candidate with the diagnostic C mapping; no repeated installer download requested.",
+    "newGameStability": "NOT_REQUESTED",
+    "nativeWindowsDifferential": "NOT_RUN",
+    "launcherImport": "Real dev.2/dev.3 packages and repeat import passed; native development launcher started and dev.3 CLI installation passed.",
+    "publicDownload": "Unauthenticated versioned HTTPS download matched the pinned size/SHA-256; the native launcher successfully reimported that download.",
+    "preferencesAndBindings": "Settings, servers and installation records remained byte-identical across native startup and imports; no game or prefix was created.",
+    "installedLauncherAppImage": "Not released or updated; launcher catalog changes remain local.",
+    "sourceLimitations": "Inherited dev.2 publication review remains applicable; no new SPDX/SBOM or full upstream compilation reproducibility claim."
+  }
+}
